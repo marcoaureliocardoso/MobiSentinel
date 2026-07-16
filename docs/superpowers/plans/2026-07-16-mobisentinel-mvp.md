@@ -223,7 +223,7 @@ git commit -m "build: scaffold native Android app"
 - Consumes: `CoroutineScope` and `kotlinx.coroutines.delay`.
 - Produces: `Transport`, `ConnectivityState`, `MonitoringSettings`, `TransportSnapshot`, `MonitoringSnapshot`, `ConfirmedTransition`, and `TransitionCoordinator.submit(ConnectivityState)`.
 
-- [ ] **Step 1: Define the model types**
+- [x] **Step 1: Define the model types**
 
 ```kotlin
 package com.mobisentinel.app.monitoring.model
@@ -264,7 +264,7 @@ data class ConfirmedTransition(
 )
 ```
 
-- [ ] **Step 2: Write coordinator tests first**
+- [x] **Step 2: Write coordinator tests first**
 
 Use `StandardTestDispatcher` and `runTest` to prove all of these cases in separate tests:
 
@@ -279,13 +279,13 @@ Use `StandardTestDispatcher` and `runTest` to prove all of these cases in separa
 
 The fixture records `ConfirmedTransition` values in a mutable list and reads delay seconds from a mutable `MonitoringSettings` so later preference changes affect new submissions.
 
-- [ ] **Step 3: Run the new test class and verify failure**
+- [x] **Step 3: Run the new test class and verify failure**
 
 Run: `./gradlew testDebugUnitTest --tests '*.TransitionCoordinatorTest'`
 
 Expected: FAIL because `TransitionCoordinator` does not exist.
 
-- [ ] **Step 4: Implement the minimal coordinator**
+- [x] **Step 4: Implement the minimal coordinator**
 
 ```kotlin
 package com.mobisentinel.app.monitoring.state
@@ -338,7 +338,7 @@ class TransitionCoordinator(
 }
 ```
 
-- [ ] **Step 5: Run focused and full unit tests**
+- [x] **Step 5: Run focused and full unit tests**
 
 Run:
 
@@ -349,7 +349,7 @@ Run:
 
 Expected: both commands report `BUILD SUCCESSFUL`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add app/src/main/java/com/mobisentinel/app/monitoring app/src/test/java/com/mobisentinel/app/monitoring
