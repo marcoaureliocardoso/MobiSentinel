@@ -95,7 +95,7 @@
 - Consumes: Android SDK at `C:\Users\Marco\AppData\Local\Android\Sdk`, JDK 21, and Android Studio Quail 1 already installed.
 - Produces: a single `:app` module whose debug APK and JVM test task build from the Gradle wrapper.
 
-- [ ] **Step 1: Create Gradle settings, catalog, and root build**
+- [x] **Step 1: Create Gradle settings, catalog, and root build**
 
 Use these exact version pins in `gradle/libs.versions.toml`:
 
@@ -142,7 +142,7 @@ compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "
 
 `settings.gradle.kts` must use `google()`, `mavenCentral()`, and `gradlePluginPortal()` only. Root `build.gradle.kts` applies the three catalog plugins with `apply false`.
 
-- [ ] **Step 2: Generate and pin the wrapper**
+- [x] **Step 2: Generate and pin the wrapper**
 
 Run the cached Gradle executable once to generate wrapper scripts, then pin Gradle 8.13:
 
@@ -158,7 +158,7 @@ networkTimeout=10000
 validateDistributionUrl=true
 ```
 
-- [ ] **Step 3: Configure the app module**
+- [x] **Step 3: Configure the app module**
 
 Create `app/build.gradle.kts` with namespace/application ID `com.mobisentinel.app`, `compileSdk = 36`, `minSdk = 26`, `targetSdk = 36`, Java/Kotlin target 17, `buildFeatures.compose = true`, `buildFeatures.buildConfig = true`, the BOM applied to production and Android tests, and all catalog dependencies above. Configure `testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"` and `unitTests.isIncludeAndroidResources = true`.
 
@@ -170,7 +170,7 @@ sdk.dir=C\:\\Users\\Marco\\AppData\\Local\\Android\\Sdk
 
 Add `local.properties`, `.gradle/`, `.idea/`, `build/`, and `app/build/` to `.gitignore`.
 
-- [ ] **Step 4: Write the failing smoke test**
+- [x] **Step 4: Write the failing smoke test**
 
 ```kotlin
 package com.mobisentinel.app
@@ -185,17 +185,17 @@ class ProjectSmokeTest {
 }
 ```
 
-- [ ] **Step 5: Run the test and observe the missing shell failure**
+- [x] **Step 5: Run the test and observe the missing shell failure**
 
 Run: `./gradlew testDebugUnitTest --tests '*.ProjectSmokeTest'`
 
 Expected before `MainActivity`, theme, manifest, and resources exist: compilation or manifest processing fails because the application shell is incomplete.
 
-- [ ] **Step 6: Create the minimal Compose shell**
+- [x] **Step 6: Create the minimal Compose shell**
 
 `MainActivity.kt` must render `MobiSentinelTheme { Text("MobiSentinel") }`. Create a no-action-bar Material theme, strings for `app_name`, and a launcher activity manifest entry. Keep `MainActivity` focused on `setContent`; no monitoring logic enters this file in this task.
 
-- [ ] **Step 7: Verify tests and APK**
+- [x] **Step 7: Verify tests and APK**
 
 Run:
 
@@ -205,7 +205,7 @@ Run:
 
 Expected: `BUILD SUCCESSFUL`; APK at `app/build/outputs/apk/debug/app-debug.apk`.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```powershell
 git add .gitignore settings.gradle.kts build.gradle.kts gradle.properties gradle gradlew gradlew.bat app
