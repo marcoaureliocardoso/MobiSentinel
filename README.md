@@ -57,7 +57,7 @@ $adb = 'C:\Users\Marco\AppData\Local\Android\Sdk\platform-tools\adb.exe'
 - `MonitoringService` mantém o trabalho contínuo como foreground service e atualiza a notificação de ID `1001` no canal `mobisentinel_monitoring`.
 - Preferences DataStore guarda ativação, opções de voz e atrasos. `BootReceiver` retoma o serviço apenas quando a ativação persistida continua ligada.
 
-A especificação e o plano detalhados estão em [docs/superpowers/specs/2026-07-16-mobisentinel-design.md](docs/superpowers/specs/2026-07-16-mobisentinel-design.md) e [docs/superpowers/plans/2026-07-16-mobisentinel-mvp.md](docs/superpowers/plans/2026-07-16-mobisentinel-mvp.md).
+A especificação e o plano detalhados estão em [docs/superpowers/specs/2026-07-16-mobisentinel-design.md](docs/superpowers/specs/2026-07-16-mobisentinel-design.md), [docs/superpowers/plans/2026-07-16-mobisentinel-mvp.md](docs/superpowers/plans/2026-07-16-mobisentinel-mvp.md), [especificação de automação de releases](docs/superpowers/specs/2026-07-16-release-automation-design.md) e [plano de automação de releases](docs/superpowers/plans/2026-07-16-release-automation.md).
 
 ## Permissões
 
@@ -70,6 +70,27 @@ A especificação e o plano detalhados estão em [docs/superpowers/specs/2026-07
 | `RECEIVE_BOOT_COMPLETED` | Retomar o serviço depois do boot somente se o usuário o havia ativado. |
 
 O MVP não solicita localização, microfone, telefone, SMS, contatos ou armazenamento.
+
+## Versionamento e releases
+
+O MobiSentinel segue SemVer no formato `X.Y.Z`. O `versionCode` Android é derivado automaticamente por `major × 1.000.000 + minor × 1.000 + patch`; assim, a versão 0.1.0 usa o código 1000. Cada componente deve permanecer entre 0 e 999.
+
+As mudanças usam Conventional Commits: `feat:` gera incremento minor, `fix:` gera patch e uma mudança incompatível indicada por `!` ou `BREAKING CHANGE:` gera major. Commits isolados de documentação, testes, build e manutenção não publicam uma nova versão.
+
+Release Please mantém uma pull request com a próxima versão e o `CHANGELOG.md`. Essa pull request é sempre revisada e mesclada manualmente. Seu merge cria a tag `vX.Y.Z` e uma GitHub Release marcada como pré-lançamento enquanto houver gates físicos abertos.
+
+### APK de depuração
+
+O arquivo `MobiSentinel-X.Y.Z-debug.apk` anexado às releases usa assinatura debug. Ele serve para avaliação técnica e **não é adequado para produção, publicação em loja ou distribuição como build final**.
+
+Cada APK possui um arquivo `.sha256`. No PowerShell, confira o hash baixado com:
+
+```powershell
+(Get-FileHash .\MobiSentinel-X.Y.Z-debug.apk -Algorithm SHA256).Hash.ToLowerInvariant()
+Get-Content .\MobiSentinel-X.Y.Z-debug.apk.sha256
+```
+
+Os valores devem ser iguais. A aprovação para produção exige concluir os gates da [matriz de validação manual](docs/testing/manual-test-matrix.md), incluindo dados móveis físicos, áudio TTS e políticas de bateria dos fabricantes-alvo.
 
 ## Limitações conhecidas e gates de liberação
 
