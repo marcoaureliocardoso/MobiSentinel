@@ -547,7 +547,7 @@ git commit -m "feat: persist monitoring preferences"
 - Consumes: `ConfirmedTransition` and Android `TextToSpeech`.
 - Produces: `SpeechController.announce`, `testVoice`, `availability`, and `close`; exact Portuguese event copy; deterministic cross-transport ordering.
 
-- [ ] **Step 1: Define speech types and contracts**
+- [x] **Step 1: Define speech types and contracts**
 
 ```kotlin
 enum class SpeechAvailability { INITIALIZING, READY, UNAVAILABLE }
@@ -562,7 +562,7 @@ interface SpeechController {
 }
 ```
 
-- [ ] **Step 2: Write exact-copy message tests**
+- [x] **Step 2: Write exact-copy message tests**
 
 Assert the current state maps to these strings:
 
@@ -577,7 +577,7 @@ Transport.CELLULAR + CONNECTED -> "Acesso à internet por dados móveis restabel
 
 Implement `PortugueseMessageFactory.from(ConfirmedTransition): Announcement` with an exhaustive `when` and no Android dependency.
 
-- [ ] **Step 3: Write queue tests first**
+- [x] **Step 3: Write queue tests first**
 
 Cover: first offer starts immediately; second transport waits; a newer pending Wi-Fi event replaces the older pending Wi-Fi event in place; completing current returns the next item; completing the last item returns null; clearing drops every pending item.
 
@@ -593,7 +593,7 @@ class AnnouncementQueue {
 
 `offer` returns the item only when the queue was idle and the caller must start speech. While an item is speaking, new items enter a pending deque; pending items with the same transport are replaced.
 
-- [ ] **Step 4: Run both test classes and verify failure**
+- [x] **Step 4: Run both test classes and verify failure**
 
 Run:
 
@@ -603,7 +603,7 @@ Run:
 
 Expected: FAIL because factory and queue implementations do not exist.
 
-- [ ] **Step 5: Implement the pure queue**
+- [x] **Step 5: Implement the pure queue**
 
 ```kotlin
 class AnnouncementQueue {
@@ -634,7 +634,7 @@ class AnnouncementQueue {
 }
 ```
 
-- [ ] **Step 6: Implement Android Text-to-Speech lifecycle**
+- [x] **Step 6: Implement Android Text-to-Speech lifecycle**
 
 Initialize `TextToSpeech` with application context, set `Locale("pt", "BR")`, and expose `READY` only when initialization succeeds and `isLanguageAvailable` is not `LANG_MISSING_DATA` or `LANG_NOT_SUPPORTED`. Drop announcements received before `READY`; do not replay them later. Use `QUEUE_FLUSH` only for `testVoice`; normal announcements use one queue item at a time and `UtteranceProgressListener.onDone/onError` advances `AnnouncementQueue` on the main handler. `close()` clears the queue, stops speech, calls `shutdown()`, and marks `UNAVAILABLE`.
 
@@ -648,7 +648,7 @@ Add the Android 11 package-visibility query:
 </queries>
 ```
 
-- [ ] **Step 7: Verify focused tests and compile**
+- [x] **Step 7: Verify focused tests and compile**
 
 Run:
 
@@ -659,7 +659,7 @@ Run:
 
 Expected: all focused tests pass and the debug APK builds.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```powershell
 git add app/src/main/AndroidManifest.xml app/src/main/java/com/mobisentinel/app/speech app/src/test/java/com/mobisentinel/app/speech
