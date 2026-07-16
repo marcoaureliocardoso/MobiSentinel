@@ -22,7 +22,8 @@ class BootReceiver : BroadcastReceiver() {
         val app = context.applicationContext as MobiSentinelApplication
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                if (app.settingsRepository.settings.first().monitoringEnabled) {
+                val enabled = app.settingsRepository.settings.first().monitoringEnabled
+                if (shouldRestartMonitoring(intent.action, enabled)) {
                     MonitoringService.start(context)
                 }
             } finally {
@@ -31,3 +32,9 @@ class BootReceiver : BroadcastReceiver() {
         }
     }
 }
+
+internal fun shouldRestartMonitoring(action: String?, enabled: Boolean): Boolean =
+    enabled && (
+        action == Intent.ACTION_BOOT_COMPLETED ||
+            action == Intent.ACTION_MY_PACKAGE_REPLACED
+        )

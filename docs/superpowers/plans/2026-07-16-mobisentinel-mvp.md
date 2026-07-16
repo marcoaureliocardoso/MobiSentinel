@@ -974,7 +974,7 @@ git commit -m "feat: add status and monitoring settings screens"
 - Consumes: public Compose screen parameters and `BootReceiver` decision logic.
 - Produces: regression coverage for status semantics, setting controls, navigation, and conditional boot restart.
 
-- [ ] **Step 1: Write main-screen Compose tests**
+- [x] **Step 1: Write main-screen Compose tests**
 
 Use `createComposeRule()` and render `MainScreen` directly. Verify:
 
@@ -986,11 +986,11 @@ onNodeWithTag("activate_monitoring").assertIsDisplayed()
 
 Also verify the activation and settings callbacks are each invoked exactly once on click.
 
-- [ ] **Step 2: Write settings-screen Compose tests**
+- [x] **Step 2: Write settings-screen Compose tests**
 
 Render active settings with Wi-Fi narration on, cellular narration off, loss 5, recovery 2. Assert switch states and displayed delay labels; perform clicks and semantic slider changes; verify callbacks receive `false`, `true`, `12`, and `4`; verify voice-settings button appears only for `UNAVAILABLE`; verify test-voice and stop callbacks. Render inactive monitoring separately and verify the test-voice action is disabled.
 
-- [ ] **Step 3: Extract and test boot decision**
+- [x] **Step 3: Extract and test boot decision**
 
 Keep Android dispatch thin by extracting:
 
@@ -1001,7 +1001,7 @@ internal fun shouldRestartMonitoring(action: String?, enabled: Boolean): Boolean
 
 Test the two allowed actions, a null action, unrelated action, and disabled monitoring.
 
-- [ ] **Step 4: Run all instrumented tests**
+- [x] **Step 4: Run all instrumented tests**
 
 Run:
 
@@ -1011,7 +1011,7 @@ Run:
 
 Expected: all DataStore and Compose instrumentation tests pass on `emulator-5554`.
 
-- [ ] **Step 5: Run all JVM tests**
+- [x] **Step 5: Run all JVM tests**
 
 Run:
 
@@ -1021,7 +1021,7 @@ Run:
 
 Expected: all coordinator, tracker, message, queue, engine, notification, ViewModel, and boot-decision tests pass.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add app/src/androidTest app/src/main/java/com/mobisentinel/app/service/BootReceiver.kt
