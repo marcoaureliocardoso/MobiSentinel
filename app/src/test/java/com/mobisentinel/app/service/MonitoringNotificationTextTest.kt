@@ -7,6 +7,13 @@ import org.junit.Test
 
 class MonitoringNotificationTextTest {
     @Test
+    fun notificationPermissionIsRequiredStartingOnAndroid13() {
+        assertEquals(false, notificationPermissionRequired(sdkInt = 32))
+        assertEquals(true, notificationPermissionRequired(sdkInt = 33))
+        assertEquals(true, notificationPermissionRequired(sdkInt = 36))
+    }
+
+    @Test
     fun unknownStatesAreShownAsChecking() {
         assertEquals(
             "Wi-Fi: verificando • Dados móveis: verificando",

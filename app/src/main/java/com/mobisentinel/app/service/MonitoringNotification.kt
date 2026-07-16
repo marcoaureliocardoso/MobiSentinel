@@ -1,5 +1,6 @@
 package com.mobisentinel.app.service
 
+import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -7,11 +8,13 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.ServiceCompat
+import androidx.core.content.ContextCompat
 import com.mobisentinel.app.MainActivity
 import com.mobisentinel.app.monitoring.model.ConnectivityState
 import com.mobisentinel.app.monitoring.model.MonitoringSnapshot
@@ -48,6 +51,15 @@ object MonitoringNotification {
     }
 
     fun update(context: Context, snapshot: MonitoringSnapshot) {
+        if (
+            notificationPermissionRequired(Build.VERSION.SDK_INT) &&
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS,
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
         NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, build(context, snapshot))
     }
 
@@ -93,3 +105,6 @@ object MonitoringNotification {
         ConnectivityState.CONNECTED -> "com internet"
     }
 }
+
+internal fun notificationPermissionRequired(sdkInt: Int): Boolean =
+    sdkInt >= Build.VERSION_CODES.TIRAMISU
