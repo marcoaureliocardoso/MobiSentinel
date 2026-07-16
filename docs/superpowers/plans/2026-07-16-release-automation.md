@@ -567,6 +567,10 @@ jobs:
 
       - name: Test, lint, and assemble debug APK
         run: ./gradlew testDebugUnitTest lintDebug assembleDebug
+
+      - name: Test release APK verifier
+        shell: pwsh
+        run: ./scripts/tests/verify-release-apk-test.ps1
 ```
 
 - [ ] **Step 2: Prove every external action is SHA-pinned**
