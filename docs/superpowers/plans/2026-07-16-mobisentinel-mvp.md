@@ -463,7 +463,7 @@ git commit -m "feat: observe Wi-Fi and cellular networks separately"
 - Consumes: `MonitoringSettings` and Android `DataStore<Preferences>`.
 - Produces: `SettingsRepository.settings: Flow<MonitoringSettings>` and explicit setters for activation, narration selection, and confirmation delays.
 
-- [ ] **Step 1: Define the settings contract**
+- [x] **Step 1: Define the settings contract**
 
 ```kotlin
 interface SettingsRepository {
@@ -478,7 +478,7 @@ interface SettingsRepository {
 
 Every delay setter must call `require(seconds in 0..60)` before writing.
 
-- [ ] **Step 2: Write the instrumented persistence tests**
+- [x] **Step 2: Write the instrumented persistence tests**
 
 Use a unique temporary preferences file created with `PreferenceDataStoreFactory.create(scope = backgroundScope, produceFile = { context.preferencesDataStoreFile(fileName) })`. Verify default values, each setter, flow updates, and rejection of `-1` and `61`.
 
@@ -489,7 +489,7 @@ repository.setLossDelaySeconds(12)
 assertEquals(12, repository.settings.first().lossDelaySeconds)
 ```
 
-- [ ] **Step 3: Run the test and verify failure**
+- [x] **Step 3: Run the test and verify failure**
 
 Run on the active emulator:
 
@@ -499,7 +499,7 @@ Run on the active emulator:
 
 Expected: compilation fails because `DataStoreSettingsRepository` is missing.
 
-- [ ] **Step 4: Implement the DataStore adapter**
+- [x] **Step 4: Implement the DataStore adapter**
 
 Use these exact keys and defaults:
 
@@ -515,7 +515,7 @@ private object Keys {
 
 Map `IOException` while reading to `emptyPreferences()` and rethrow every other exception. Clamp persisted delay values with `coerceIn(0, 60)` so a damaged or manually modified store cannot crash model construction. Each setter uses `dataStore.edit` and changes exactly one key.
 
-- [ ] **Step 5: Run persistence and unit tests**
+- [x] **Step 5: Run persistence and unit tests**
 
 Run:
 
@@ -526,7 +526,7 @@ Run:
 
 Expected: both commands report `BUILD SUCCESSFUL`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add app/src/main/java/com/mobisentinel/app/preferences app/src/androidTest/java/com/mobisentinel/app/preferences
