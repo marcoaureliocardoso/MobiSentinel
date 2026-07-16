@@ -53,3 +53,7 @@ if ($oversized.Output -notmatch '0\.\.999') {
 }
 
 Write-Output 'APK verifier tests passed: valid, mismatch, syntax, and component range'
+
+# Negative cases intentionally leave the last child process with exit code 1.
+# Reset it so dot-sourced CI shells report the successful test suite correctly.
+$global:LASTEXITCODE = 0
