@@ -40,6 +40,7 @@ jobs:
       - name: Dispatch CI for release pull request
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           RELEASE_PR: ${{ needs.release-please.outputs.pr }}
         run: |
           release_branch="$(jq -r '.headBranchName // empty' <<<"$RELEASE_PR")"
