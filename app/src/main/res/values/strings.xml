@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">MobiSentinel</string>
+    <string name="monitoring_active">Monitoramento ativo</string>
+    <string name="monitoring_inactive">Monitoramento inativo</string>
+    <string name="activate_monitoring">Ativar monitoramento</string>
+    <string name="settings">Configurações</string>
+    <string name="test_narration">Testar narração</string>
+    <string name="stop_monitoring">Parar monitoramento</string>
 </resources>

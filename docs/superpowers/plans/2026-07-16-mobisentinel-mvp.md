@@ -889,7 +889,7 @@ git commit -m "feat: run monitoring as a restartable foreground service"
 - Consumes: `MonitoringStateStore`, `SettingsRepository`, the shared speech-availability flow, and service callbacks supplied by `MainActivity`.
 - Produces: observable `MainUiState`, an accessible two-screen UI, explicit activation, stop, independent narration toggles, delay controls, and voice test.
 
-- [ ] **Step 1: Define UI state**
+- [x] **Step 1: Define UI state**
 
 ```kotlin
 data class MainUiState(
@@ -901,21 +901,21 @@ data class MainUiState(
 
 `MainViewModel` combines the state-store, settings, and shared speech-availability flows with `stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MainUiState())`. Setter methods launch one repository update each. `activate()` persists `monitoringEnabled=true`; stopping and testing voice remain activity callbacks because they target service actions.
 
-- [ ] **Step 2: Write ViewModel tests first**
+- [x] **Step 2: Write ViewModel tests first**
 
 Use fake state/settings flows. Verify initial combination, state changes, Wi-Fi toggle, cellular toggle, loss delay, recovery delay, and activation persistence. Each setter assertion uses `advanceUntilIdle()`.
 
-- [ ] **Step 3: Run the ViewModel test and verify failure**
+- [x] **Step 3: Run the ViewModel test and verify failure**
 
 Run: `./gradlew testDebugUnitTest --tests '*.MainViewModelTest'`
 
 Expected: FAIL because `MainViewModel` is missing.
 
-- [ ] **Step 4: Implement ViewModel and factory**
+- [x] **Step 4: Implement ViewModel and factory**
 
 Implement `MainViewModel.Factory(application)` using `ViewModelProvider.Factory`. Do not hold an Activity or Service context. Expose only immutable state and methods that delegate to the repository.
 
-- [ ] **Step 5: Build the accessible screens**
+- [x] **Step 5: Build the accessible screens**
 
 `MainScreen` contains:
 
@@ -933,7 +933,7 @@ Each card sets a complete content description such as `Wi-Fi: conectado com inte
 
 For `Abrir configurações de voz`, `MainActivity` first resolves `Intent("com.android.settings.TTS_SETTINGS")`; if unavailable it resolves `Intent(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA)`; if neither resolves it opens `Settings.ACTION_ACCESSIBILITY_SETTINGS`. Check `resolveActivity(packageManager)` before every launch so the action never crashes on a vendor-specific Android build.
 
-- [ ] **Step 6: Wire first-run activation and notification permission**
+- [x] **Step 6: Wire first-run activation and notification permission**
 
 In `MainActivity`, register `ActivityResultContracts.RequestPermission`. When the user taps activate:
 
@@ -944,7 +944,7 @@ In `MainActivity`, register `ActivityResultContracts.RequestPermission`. When th
 
 `MobiSentinelApp` uses `rememberSaveable` for a local `MAIN`/`SETTINGS` destination; no Navigation dependency is added.
 
-- [ ] **Step 7: Verify ViewModel tests and APK**
+- [x] **Step 7: Verify ViewModel tests and APK**
 
 Run:
 
@@ -955,7 +955,7 @@ Run:
 
 Expected: ViewModel tests pass and Compose sources compile.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```powershell
 git add app/src/main/java/com/mobisentinel/app/MainActivity.kt app/src/main/java/com/mobisentinel/app/ui app/src/main/res/values/strings.xml app/src/test/java/com/mobisentinel/app/ui
