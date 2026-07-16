@@ -2,6 +2,11 @@
 
 Data: 16 de julho de 2026
 
+## Documentos relacionados
+
+- [Plano de implementação do MVP](../plans/2026-07-16-mobisentinel-mvp.md)
+- [Matriz de validação manual e gates de liberação](../../testing/manual-test-matrix.md)
+
 ## Objetivo
 
 Criar um aplicativo Android que monitore continuamente e de forma independente a conectividade por Wi‑Fi e dados móveis. Após confirmar uma mudança de estado, o aplicativo atualiza sua interface e pode narrar o evento por meio do mecanismo de síntese de voz do Android.

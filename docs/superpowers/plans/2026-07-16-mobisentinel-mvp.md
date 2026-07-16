@@ -1039,7 +1039,7 @@ git commit -m "test: cover MobiSentinel UI and restart policy"
 - Consumes: debug APK, active API 35 emulator, and `adb` at the installed SDK path.
 - Produces: repeatable build/run instructions, recorded emulator evidence, physical-device checklist, and a clean repository ready to relocate.
 
-- [ ] **Step 1: Install and launch the debug build**
+- [x] **Step 1: Install and launch the debug build**
 
 ```powershell
 $adb = 'C:\Users\Marco\AppData\Local\Android\Sdk\platform-tools\adb.exe'
@@ -1049,7 +1049,7 @@ $adb = 'C:\Users\Marco\AppData\Local\Android\Sdk\platform-tools\adb.exe'
 
 Expected: `Starting: Intent` and the MobiSentinel main screen on `emulator-5554`.
 
-- [ ] **Step 2: Validate activation and foreground service**
+- [x] **Step 2: Validate activation and foreground service**
 
 Activate monitoring in the UI, grant notifications, then run:
 
@@ -1060,7 +1060,7 @@ Activate monitoring in the UI, grant notifications, then run:
 
 Expected: `MonitoringService` is running and notification ID `1001` appears on channel `mobisentinel_monitoring`.
 
-- [ ] **Step 3: Validate Wi-Fi transitions and debounce**
+- [x] **Step 3: Validate Wi-Fi transitions and debounce**
 
 ```powershell
 & $adb shell svc wifi disable
@@ -1071,7 +1071,9 @@ Start-Sleep -Seconds 3
 
 Expected: UI/notification show Wi-Fi disconnected after about 5 seconds and restored after about 2 stable seconds; one spoken message occurs for each confirmed transition when Wi-Fi narration is enabled. Repeat with narration disabled and confirm visual updates remain but voice is silent.
 
-- [ ] **Step 4: Validate mode changes and restart**
+Recorded limitation: the visual/notification transitions and debounce passed on the headless AVD. The AVD's Wi-Fi reassociation/validation added recovery latency, and audible TTS verification remains an explicit physical-device gate in `docs/testing/manual-test-matrix.md`; message and suppression policies are covered by JVM tests.
+
+- [x] **Step 4: Validate mode changes and restart**
 
 Toggle airplane mode through emulator quick settings and verify both transports settle to disconnected. Re-enable connectivity, then reboot:
 
@@ -1084,7 +1086,7 @@ Toggle airplane mode through emulator quick settings and verify both transports 
 
 Expected: the service is present after boot when monitoring was enabled. Use the notification `Parar` action, reboot again, and confirm the service does not restart.
 
-- [ ] **Step 5: Run the complete verification gate**
+- [x] **Step 5: Run the complete verification gate**
 
 ```powershell
 ./gradlew clean testDebugUnitTest connectedDebugAndroidTest lintDebug assembleDebug
@@ -1093,13 +1095,13 @@ git status --short
 
 Expected: every Gradle task reports `BUILD SUCCESSFUL`; `git status --short` shows only the documentation files being prepared in this task.
 
-- [ ] **Step 6: Write the handoff documentation**
+- [x] **Step 6: Write the handoff documentation**
 
 `README.md` must include prerequisites, SDK path, build/test/install commands, architecture summary, permissions with reasons, how to activate/stop monitoring, and known limitations. `manual-test-matrix.md` records pass/fail and evidence for Wi-Fi, no-internet/captive portal, mode airplane, reboot, TTS unavailable, and physical cellular loss/recovery. Mark physical cellular validation as a required release gate, not as completed emulator coverage.
 
 Record that Google Play publication later requires a foreground-service declaration and review for `specialUse`; publication remains outside this MVP.
 
-- [ ] **Step 7: Commit documentation and evidence**
+- [x] **Step 7: Commit documentation and evidence**
 
 ```powershell
 git add README.md docs
