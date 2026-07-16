@@ -18,3 +18,4 @@
 
 * guard notification updates by permission ([2fbb11f](https://github.com/marcoaureliocardoso/MobiSentinel/commit/2fbb11f31ef3383baeea6f6cf443098f9e700ce9))
 * provide repository context to release dispatch ([#3](https://github.com/marcoaureliocardoso/MobiSentinel/issues/3)) ([d6d9d62](https://github.com/marcoaureliocardoso/MobiSentinel/commit/d6d9d62d61eee204af828b17aaed3f7c99eba5e0))
+* provide repository context to release jobs ([#4](https://github.com/marcoaureliocardoso/MobiSentinel/issues/4)) ([d01b8cb](https://github.com/marcoaureliocardoso/MobiSentinel/commit/d01b8cbf761a078f802ecef6ff8b735ec9c4d4ba))
