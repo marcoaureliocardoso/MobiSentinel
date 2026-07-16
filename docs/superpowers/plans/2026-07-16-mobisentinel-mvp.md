@@ -368,7 +368,7 @@ git commit -m "feat: debounce confirmed connectivity states"
 - Consumes: `TransportSnapshot`, Android `ConnectivityManager`, `NetworkRequest`, and `NetworkCapabilities`.
 - Produces: `NetworkObserver.states: Flow<TransportSnapshot>`, `start()`, `stop()`, and transport aggregation independent of Android object identity.
 
-- [ ] **Step 1: Define the observer contract and tracker tests**
+- [x] **Step 1: Define the observer contract and tracker tests**
 
 ```kotlin
 interface NetworkObserver {
@@ -380,13 +380,13 @@ interface NetworkObserver {
 
 Write tracker tests for: empty is disconnected; available unvalidated network is connected without internet; validated capability becomes connected; losing the only network disconnects; one validated network wins over another unvalidated network; losing one of two networks retains the remaining aggregate state.
 
-- [ ] **Step 2: Run tracker tests and verify failure**
+- [x] **Step 2: Run tracker tests and verify failure**
 
 Run: `./gradlew testDebugUnitTest --tests '*.TransportNetworkTrackerTest'`
 
 Expected: FAIL because `TransportNetworkTracker` is missing.
 
-- [ ] **Step 3: Implement the pure tracker**
+- [x] **Step 3: Implement the pure tracker**
 
 ```kotlin
 class TransportNetworkTracker<K> {
@@ -420,7 +420,7 @@ class TransportNetworkTracker<K> {
 }
 ```
 
-- [ ] **Step 4: Implement Android callbacks**
+- [x] **Step 4: Implement Android callbacks**
 
 Create one `NetworkRequest` for `TRANSPORT_WIFI` and one for `TRANSPORT_CELLULAR`. Do not add `NET_CAPABILITY_VALIDATED` to either request; observe `NET_CAPABILITY_VALIDATED` in `onCapabilitiesChanged`. Each callback owns a `TransportNetworkTracker<Network>` and emits only when its aggregate state changes. Register both callbacks once in `start()`, unregister both in `stop()`, catch `IllegalArgumentException` only around unregister, and clear both trackers on stop.
 
@@ -428,7 +428,7 @@ Seed the initial state atomically: under a shared lock set `seeding=true`, regis
 
 The adapter emits through `MutableSharedFlow<TransportSnapshot>(extraBufferCapacity = 8, onBufferOverflow = DROP_OLDEST)` and guards start/stop with a synchronized boolean.
 
-- [ ] **Step 5: Add manifest network permission and compile**
+- [x] **Step 5: Add manifest network permission and compile**
 
 Add before `<application>`:
 
@@ -445,7 +445,7 @@ Run:
 
 Expected: tracker tests pass and the debug APK builds.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add app/src/main/AndroidManifest.xml app/src/main/java/com/mobisentinel/app/monitoring/network app/src/test/java/com/mobisentinel/app/monitoring/network
