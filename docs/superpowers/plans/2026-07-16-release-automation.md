@@ -249,11 +249,13 @@ Expected: one commit containing only the tested version model and Gradle wiring.
 **Files:**
 
 - Create: `scripts/verify-release-apk.ps1`
+- Create: `scripts/tests/verify-release-apk-test.ps1`
 
 **Interfaces:**
 
 - Consumes: `-Tag vX.Y.Z`, `-ApkPath <path>` and Android SDK `aapt`.
 - Produces: exit code 0 and a `Verified ...` line only when tag, package, `versionName`, and `versionCode` agree.
+- Tested by: `scripts/tests/verify-release-apk-test.ps1` against the assembled APK.
 
 - [ ] **Step 1: Demonstrate the verifier is absent**
 
@@ -297,9 +299,30 @@ if ($components | Where-Object { $_ -gt 999 }) {
 
 $versionName = $Tag.Substring(1)
 $expectedVersionCode = [int](
-    $components[0] * 1_000_000 + $components[1] * 1_000 + $components[2]
+    $components[0] * 1000000 + $components[1] * 1000 + $components[2]
 )
 $resolvedApk = (Resolve-Path -LiteralPath $ApkPath).Path
+
+function Resolve-AndroidSdk {
+    if (-not [string]::IsNullOrWhiteSpace($env:ANDROID_HOME)) {
+        return $env:ANDROID_HOME
+    }
+
+    $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+    $localProperties = Join-Path $repositoryRoot 'local.properties'
+    if (Test-Path -LiteralPath $localProperties) {
+        $sdkLine = Get-Content -LiteralPath $localProperties |
+            Where-Object { $_.StartsWith('sdk.dir=') } |
+            Select-Object -First 1
+        if ($sdkLine) {
+            return $sdkLine.Substring('sdk.dir='.Length).
+                Replace('\:', ':').
+                Replace('\\', '\')
+        }
+    }
+
+    throw 'Android SDK was not found through ANDROID_HOME or local.properties'
+}
 
 function Resolve-Aapt {
     $command = Get-Command aapt, aapt.exe -ErrorAction SilentlyContinue |
@@ -307,11 +330,7 @@ function Resolve-Aapt {
     if ($command) {
         return $command.Source
     }
-    if ([string]::IsNullOrWhiteSpace($env:ANDROID_HOME)) {
-        throw 'aapt was not found and ANDROID_HOME is not set'
-    }
-
-    $buildTools = Join-Path $env:ANDROID_HOME 'build-tools'
+    $buildTools = Join-Path (Resolve-AndroidSdk) 'build-tools'
     $directories = Get-ChildItem -LiteralPath $buildTools -Directory |
         Sort-Object {
             [version](($_.Name -split '-')[0])
