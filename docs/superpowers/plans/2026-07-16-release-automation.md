@@ -25,8 +25,8 @@
 ## File and Responsibility Map
 
 - Create `buildSrc/build.gradle.kts`: configura o módulo isolado que contém e testa a regra de versão.
-- Create `buildSrc/src/main/kotlin/com/mobisentinel/build/AppVersion.kt`: valida SemVer e calcula `versionCode`.
-- Create `buildSrc/src/test/kotlin/com/mobisentinel/build/AppVersionTest.kt`: cobre sintaxe, limites e fórmula.
+- Create `buildSrc/src/main/kotlin/com/mobisentinel/versioning/AppVersion.kt`: valida SemVer e calcula `versionCode`.
+- Create `buildSrc/src/test/kotlin/com/mobisentinel/versioning/AppVersionTest.kt`: cobre sintaxe, limites e fórmula.
 - Modify `app/build.gradle.kts`: declara a versão anotada que Release Please atualiza e aplica o modelo validado.
 - Create `scripts/verify-release-apk.ps1`: compara tag, package, `versionName` e `versionCode` com os metadados empacotados.
 - Create `release-please-config.json`: define bootstrap 0.1.0, release simples, tag com `v`, pré-lançamento e arquivo extra.
@@ -43,8 +43,8 @@
 **Files:**
 
 - Create: `buildSrc/build.gradle.kts`
-- Create: `buildSrc/src/test/kotlin/com/mobisentinel/build/AppVersionTest.kt`
-- Create: `buildSrc/src/main/kotlin/com/mobisentinel/build/AppVersion.kt`
+- Create: `buildSrc/src/test/kotlin/com/mobisentinel/versioning/AppVersionTest.kt`
+- Create: `buildSrc/src/main/kotlin/com/mobisentinel/versioning/AppVersion.kt`
 - Modify: `app/build.gradle.kts`
 
 **Interfaces:**
@@ -74,10 +74,10 @@ dependencies {
 
 - [ ] **Step 2: Write the failing version tests**
 
-Create `buildSrc/src/test/kotlin/com/mobisentinel/build/AppVersionTest.kt`:
+Create `buildSrc/src/test/kotlin/com/mobisentinel/versioning/AppVersionTest.kt`:
 
 ```kotlin
-package com.mobisentinel.build
+package com.mobisentinel.versioning
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -150,10 +150,10 @@ Expected: `FAILED` during Kotlin test compilation with unresolved reference `App
 
 - [ ] **Step 4: Implement the minimal version model**
 
-Create `buildSrc/src/main/kotlin/com/mobisentinel/build/AppVersion.kt`:
+Create `buildSrc/src/main/kotlin/com/mobisentinel/versioning/AppVersion.kt`:
 
 ```kotlin
-package com.mobisentinel.build
+package com.mobisentinel.versioning
 
 data class AppVersion private constructor(
     val name: String,
@@ -208,7 +208,7 @@ Expected: `BUILD SUCCESSFUL`; four tests pass.
 Add this import before `plugins` in `app/build.gradle.kts`:
 
 ```kotlin
-import com.mobisentinel.build.AppVersion
+import com.mobisentinel.versioning.AppVersion
 ```
 
 Add this single source of version immediately after the `plugins` block:

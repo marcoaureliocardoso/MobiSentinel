@@ -1,8 +1,12 @@
+import com.mobisentinel.versioning.AppVersion
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.compose.compiler)
 }
+
+val appVersion = AppVersion.parse("0.1.0") // x-release-please-version
 
 android {
     namespace = "com.mobisentinel.app"
@@ -12,8 +16,8 @@ android {
         applicationId = "com.mobisentinel.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = appVersion.versionCode
+        versionName = appVersion.name
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
