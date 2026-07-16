@@ -677,7 +677,7 @@ git commit -m "feat: narrate confirmed events in Portuguese"
 - Consumes: `NetworkObserver`, `SettingsRepository`, `SpeechController`, `TransitionCoordinator`, and `CoroutineScope`.
 - Produces: `MonitoringStateStore.snapshot: StateFlow<MonitoringSnapshot>`, idempotent `MonitoringEngine.start()/stop()`, and `MonitoringEngine.testVoice()`.
 
-- [ ] **Step 1: Create state-store API**
+- [x] **Step 1: Create state-store API**
 
 ```kotlin
 class MonitoringStateStore {
@@ -695,7 +695,7 @@ class MonitoringStateStore {
 }
 ```
 
-- [ ] **Step 2: Write engine lifecycle and policy tests**
+- [x] **Step 2: Write engine lifecycle and policy tests**
 
 Build fakes backed by `MutableSharedFlow<TransportSnapshot>`, `MutableStateFlow<MonitoringSettings>`, and a recording speech controller. Verify separately:
 
@@ -709,19 +709,19 @@ Build fakes backed by `MutableSharedFlow<TransportSnapshot>`, `MutableStateFlow<
 - `testVoice()` delegates once to the active speech controller;
 - no events are handled after stop.
 
-- [ ] **Step 3: Run engine tests and verify failure**
+- [x] **Step 3: Run engine tests and verify failure**
 
 Run: `./gradlew testDebugUnitTest --tests '*.MonitoringEngineTest'`
 
 Expected: FAIL because `MonitoringEngine` is missing.
 
-- [ ] **Step 4: Implement orchestration**
+- [x] **Step 4: Implement orchestration**
 
 On `start()`, obtain the latest settings with `settings.first()`, keep them current in a private volatile field via a collection job, create one `TransitionCoordinator` per transport, collect `NetworkObserver.states`, and route snapshots by transport. The coordinator's state callback updates `MonitoringStateStore`; the transition callback checks `currentSettings.narrationEnabled(transport)` before using `PortugueseMessageFactory` and `SpeechController.announce`.
 
 Use a child `SupervisorJob` added to the injected parent scope. `testVoice()` delegates to `SpeechController.testVoice()` only while started. `stop()` cancels that job, closes coordinators, stops the observer, closes speech, and marks the store inactive. Synchronize start/stop with a private lock and boolean.
 
-- [ ] **Step 5: Run engine and all unit tests**
+- [x] **Step 5: Run engine and all unit tests**
 
 Run:
 
@@ -732,7 +732,7 @@ Run:
 
 Expected: both commands report `BUILD SUCCESSFUL`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add app/src/main/java/com/mobisentinel/app/monitoring app/src/test/java/com/mobisentinel/app/monitoring
