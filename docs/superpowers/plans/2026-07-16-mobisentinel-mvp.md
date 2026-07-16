@@ -753,7 +753,7 @@ git commit -m "feat: orchestrate continuous connection monitoring"
 - Consumes: the monitoring engine and settings repository.
 - Produces: `MonitoringService.start(context)`, `MonitoringService.stop(context)`, an ongoing notification, and conditional boot/package-replacement restart.
 
-- [ ] **Step 1: Add service and boot declarations**
+- [x] **Step 1: Add service and boot declarations**
 
 Add these permissions:
 
@@ -774,7 +774,7 @@ Set `android:name=".MobiSentinelApplication"` on `<application>`. Declare a non-
 
 Declare an exported `BootReceiver` for `BOOT_COMPLETED` and `MY_PACKAGE_REPLACED`. Do not add location or phone-state permissions.
 
-- [ ] **Step 2: Create the application graph**
+- [x] **Step 2: Create the application graph**
 
 Define one process-level `DataStore` with `val Context.settingsDataStore by preferencesDataStore("monitoring_settings")`. `MobiSentinelApplication` exposes:
 
@@ -787,7 +787,7 @@ fun createMonitoringEngine(scope: CoroutineScope): MonitoringEngine
 
 The application owns a private `MutableStateFlow<SpeechAvailability>` exposed as `speechAvailability`. The factory creates a fresh `AndroidNetworkObserver`, `AndroidSpeechController`, and `MonitoringEngine`; pass the shared speech-availability flow into each new speech controller so the UI follows the active controller across service recreation. Shared objects are the repository, state store, and availability flow. No DI framework is added.
 
-- [ ] **Step 3: Write notification-summary tests**
+- [x] **Step 3: Write notification-summary tests**
 
 Extract `MonitoringNotification.summary(snapshot)` as a pure function. Assert these examples:
 
@@ -797,19 +797,19 @@ MonitoringSnapshot(CONNECTED, DISCONNECTED, true) -> "Wi-Fi: com internet • Da
 MonitoringSnapshot(CONNECTED_NO_INTERNET, CONNECTED, true) -> "Wi-Fi: sem internet • Dados móveis: com internet"
 ```
 
-- [ ] **Step 4: Run the summary test and verify failure**
+- [x] **Step 4: Run the summary test and verify failure**
 
 Run: `./gradlew testDebugUnitTest --tests '*.MonitoringNotificationTextTest'`
 
 Expected: FAIL because `MonitoringNotification` does not exist.
 
-- [ ] **Step 5: Implement the notification**
+- [x] **Step 5: Implement the notification**
 
 Create channel ID `mobisentinel_monitoring`, channel name `Monitoramento de conexões`, importance `LOW`, no sound, and no vibration. Build an ongoing `CATEGORY_SERVICE` notification titled `MobiSentinel monitorando conexões`, containing `summary(snapshot)`, opening `MainActivity`, and exposing an action labeled `Parar` that targets `MonitoringService.ACTION_STOP` through an immutable service `PendingIntent`.
 
 Use a stable notification ID of `1001`. On Android 34+, start it with `ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE` through `ServiceCompat.startForeground`.
 
-- [ ] **Step 6: Implement service lifecycle**
+- [x] **Step 6: Implement service lifecycle**
 
 ```kotlin
 class MonitoringService : Service() {
@@ -851,11 +851,11 @@ class MonitoringService : Service() {
 
 `stopFromUser()` launches a final coroutine that sets `monitoringEnabled=false`, then switches to main dispatcher to remove the foreground notification and call `stopSelf()`. Companion functions use `ContextCompat.startForegroundService`; `stop(context)` sends `ACTION_STOP` rather than directly calling `stopService`. `testVoice(context)` sends `ACTION_TEST_VOICE` to the already active service and is ignored by the UI while monitoring is inactive.
 
-- [ ] **Step 7: Implement boot restart**
+- [x] **Step 7: Implement boot restart**
 
 Use `goAsync()`, an IO `CoroutineScope`, and `settings.first()`. Start the service only when `monitoringEnabled` is true. Always call `PendingResult.finish()` in `finally`. Ignore unrelated actions.
 
-- [ ] **Step 8: Verify compile, tests, and manifest merge**
+- [x] **Step 8: Verify compile, tests, and manifest merge**
 
 Run:
 
@@ -866,7 +866,7 @@ Run:
 
 Expected: tests pass, manifest merge succeeds, and APK builds without missing foreground-service-type errors.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```powershell
 git add app/src/main/AndroidManifest.xml app/src/main/java/com/mobisentinel/app/MobiSentinelApplication.kt app/src/main/java/com/mobisentinel/app/service app/src/test/java/com/mobisentinel/app/service

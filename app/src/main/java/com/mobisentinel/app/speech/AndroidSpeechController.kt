@@ -10,11 +10,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-class AndroidSpeechController(context: Context) : SpeechController {
+class AndroidSpeechController(
+    context: Context,
+    private val mutableAvailability: MutableStateFlow<SpeechAvailability> =
+        MutableStateFlow(SpeechAvailability.INITIALIZING),
+) : SpeechController {
     private val mainHandler = Handler(Looper.getMainLooper())
     private val queue = AnnouncementQueue()
-    private val mutableAvailability = MutableStateFlow(SpeechAvailability.INITIALIZING)
-
     override val availability: StateFlow<SpeechAvailability> = mutableAvailability.asStateFlow()
 
     private var textToSpeech: TextToSpeech? = null
@@ -23,6 +25,7 @@ class AndroidSpeechController(context: Context) : SpeechController {
     private var activeAnnouncementId: String? = null
 
     init {
+        mutableAvailability.value = SpeechAvailability.INITIALIZING
         textToSpeech = TextToSpeech(context.applicationContext) { status ->
             mainHandler.post { finishInitialization(status) }
         }

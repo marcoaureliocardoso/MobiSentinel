@@ -1,0 +1,44 @@
+package com.mobisentinel.app.service
+
+import com.mobisentinel.app.monitoring.model.ConnectivityState
+import com.mobisentinel.app.monitoring.model.MonitoringSnapshot
+import org.junit.Assert.assertEquals
+import org.junit.Test
+
+class MonitoringNotificationTextTest {
+    @Test
+    fun unknownStatesAreShownAsChecking() {
+        assertEquals(
+            "Wi-Fi: verificando • Dados móveis: verificando",
+            MonitoringNotification.summary(MonitoringSnapshot(serviceActive = true)),
+        )
+    }
+
+    @Test
+    fun connectedWifiAndDisconnectedCellularUseCompactCopy() {
+        assertEquals(
+            "Wi-Fi: com internet • Dados móveis: desconectados",
+            MonitoringNotification.summary(
+                MonitoringSnapshot(
+                    wifi = ConnectivityState.CONNECTED,
+                    cellular = ConnectivityState.DISCONNECTED,
+                    serviceActive = true,
+                ),
+            ),
+        )
+    }
+
+    @Test
+    fun unvalidatedWifiAndConnectedCellularUseCompactCopy() {
+        assertEquals(
+            "Wi-Fi: sem internet • Dados móveis: com internet",
+            MonitoringNotification.summary(
+                MonitoringSnapshot(
+                    wifi = ConnectivityState.CONNECTED_NO_INTERNET,
+                    cellular = ConnectivityState.CONNECTED,
+                    serviceActive = true,
+                ),
+            ),
+        )
+    }
+}
