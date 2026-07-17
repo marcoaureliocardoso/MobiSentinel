@@ -82,18 +82,44 @@ class AndroidCellularValidationProbe(
 
     override suspend fun validate(): CellularValidationResult {
         val networkSeen = AtomicBoolean(false)
-        val released = AtomicBoolean(false)
+        val registrationLock = Any()
+        var registrationFinished = false
+        var releaseRequested = false
+        var released = false
         var callback: CellularNetworkRequester.Callback? = null
 
+        fun unregisterSafely(registeredCallback: CellularNetworkRequester.Callback) {
+            try {
+                requester.unregister(registeredCallback)
+            } catch (_: RuntimeException) {
+                // Cleanup must not replace the connectivity result.
+            }
+        }
+
         fun releaseOnce() {
-            val registeredCallback = callback ?: return
-            if (released.compareAndSet(false, true)) {
-                try {
-                    requester.unregister(registeredCallback)
-                } catch (_: RuntimeException) {
-                    // Cleanup must not replace the connectivity result.
+            val registeredCallback = synchronized(registrationLock) {
+                releaseRequested = true
+                if (!registrationFinished || released) {
+                    null
+                } else {
+                    released = true
+                    callback
                 }
             }
+            registeredCallback?.let(::unregisterSafely)
+        }
+
+        fun markRegistrationFinished() {
+            val registeredCallback = synchronized(registrationLock) {
+                registrationFinished = true
+                if (!releaseRequested || released) {
+                    null
+                } else {
+                    released = true
+                    callback
+                }
+            }
+            registeredCallback?.let(::unregisterSafely)
         }
 
         return try {
@@ -128,7 +154,11 @@ class AndroidCellularValidationProbe(
                         releaseOnce()
                     }
                     try {
-                        requester.request(checkNotNull(callback))
+                        try {
+                            requester.request(checkNotNull(callback))
+                        } finally {
+                            markRegistrationFinished()
+                        }
                     } catch (failure: Throwable) {
                         completeOnce(CellularValidationResult.Failure(failure))
                     }

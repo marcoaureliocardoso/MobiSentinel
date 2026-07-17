@@ -1,6 +1,8 @@
 package com.mobisentinel.app.monitoring.network
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
@@ -91,6 +93,22 @@ class AndroidCellularValidationProbeTest {
         assertFalse(result.isCompleted && !result.isCancelled)
     }
 
+    @Test
+    fun cancellationInsideRequestReleasesAfterRegistrationCompletes() = runTest {
+        lateinit var result: Deferred<CellularValidationResult>
+        val requester = CancellationDuringRegistrationRequester { result.cancel() }
+        result = async(start = CoroutineStart.LAZY) {
+            AndroidCellularValidationProbe(requester).validate()
+        }
+
+        result.start()
+        runCurrent()
+
+        assertTrue(result.isCancelled)
+        assertEquals(0, requester.unregisterBeforeRegistrationCount)
+        assertEquals(1, requester.unregisterCount)
+    }
+
     private class FakeRequester(
         private val requestFailure: Throwable? = null,
     ) : CellularNetworkRequester {
@@ -105,6 +123,30 @@ class AndroidCellularValidationProbeTest {
         override fun unregister(callback: CellularNetworkRequester.Callback) {
             assertEquals(this.callback, callback)
             unregisterCount++
+        }
+    }
+
+    private class CancellationDuringRegistrationRequester(
+        private val cancel: () -> Unit,
+    ) : CellularNetworkRequester {
+        private lateinit var callback: CellularNetworkRequester.Callback
+        private var registered = false
+        var unregisterBeforeRegistrationCount = 0
+        var unregisterCount = 0
+
+        override fun request(callback: CellularNetworkRequester.Callback) {
+            this.callback = callback
+            cancel()
+            registered = true
+        }
+
+        override fun unregister(callback: CellularNetworkRequester.Callback) {
+            assertEquals(this.callback, callback)
+            if (registered) {
+                unregisterCount++
+            } else {
+                unregisterBeforeRegistrationCount++
+            }
         }
     }
 }
