@@ -2,7 +2,7 @@
 
 MobiSentinel é um aplicativo Android nativo que acompanha, de forma independente, a conectividade por Wi‑Fi e por dados móveis. Mudanças persistentes são confirmadas após um intervalo configurável, exibidas na interface e na notificação do serviço e, quando habilitado, narradas em português pelo Text-to-Speech do Android.
 
-O MVP funciona inteiramente no aparelho: não possui conta, backend, analytics, histórico e não faz pings periódicos.
+O MVP funciona inteiramente no aparelho: não possui conta, backend, analytics ou histórico e não envia pings, requisições ou outros pacotes próprios para servidores externos.
 
 ## Requisitos
 
@@ -50,26 +50,29 @@ $adb = 'C:\Users\Marco\AppData\Local\Android\Sdk\platform-tools\adb.exe'
 ## Arquitetura
 
 - A interface Jetpack Compose e o `MainViewModel` apresentam o snapshot confirmado e persistem as preferências.
-- `ConnectivityManager.NetworkCallback` observa Wi‑Fi e celular separadamente; o estado de internet depende da validação fornecida pelo Android.
+- `ConnectivityManager.NetworkCallback` observa o Wi‑Fi passivamente. Para manter o diagnóstico celular independente do Wi‑Fi, o aplicativo solicita temporariamente uma rede móvel ao iniciar, após eventos relevantes e 60 segundos depois da verificação anterior.
+- A sonda celular aguarda por até 15 segundos a capacidade `NET_CAPABILITY_VALIDATED`; callbacks celulares passivos apenas disparam uma nova verificação e nunca definem o estado diretamente.
+- Modo avião é somente um gatilho: Wi‑Fi e celular são reavaliados separadamente, sem inferência automática de desconexão.
 - A máquina de transições elimina oscilações usando atrasos independentes para perda e recuperação.
 - `MonitoringEngine` coordena observação, estado confirmado, preferências e narração.
 - `TextToSpeech` e uma fila por transporte serializam os anúncios em português.
 - `MonitoringService` mantém o trabalho contínuo como foreground service e atualiza a notificação de ID `1001` no canal `mobisentinel_monitoring`.
 - Preferences DataStore guarda ativação, opções de voz e atrasos. `BootReceiver` retoma o serviço apenas quando a ativação persistida continua ligada.
 
-A especificação e o plano detalhados estão em [docs/superpowers/specs/2026-07-16-mobisentinel-design.md](docs/superpowers/specs/2026-07-16-mobisentinel-design.md), [docs/superpowers/plans/2026-07-16-mobisentinel-mvp.md](docs/superpowers/plans/2026-07-16-mobisentinel-mvp.md), [especificação de automação de releases](docs/superpowers/specs/2026-07-16-release-automation-design.md) e [plano de automação de releases](docs/superpowers/plans/2026-07-16-release-automation.md).
+A especificação e o plano detalhados estão em [design do MVP](docs/superpowers/specs/2026-07-16-mobisentinel-design.md), [plano do MVP](docs/superpowers/plans/2026-07-16-mobisentinel-mvp.md), [validação celular ativa](docs/superpowers/specs/2026-07-16-cellular-active-validation-design.md), [plano da validação celular](docs/superpowers/plans/2026-07-17-cellular-active-validation.md), [especificação de automação de releases](docs/superpowers/specs/2026-07-16-release-automation-design.md) e [plano de automação de releases](docs/superpowers/plans/2026-07-16-release-automation.md).
 
 ## Permissões
 
 | Permissão | Motivo |
 | --- | --- |
 | `ACCESS_NETWORK_STATE` | Observar disponibilidade, transporte e validação de internet sem fazer sondagens externas. |
+| `CHANGE_NETWORK_STATE` | Solicitar temporariamente uma rede celular para validação independente do Wi‑Fi. |
 | `POST_NOTIFICATIONS` | Exibir, no Android 13+, o estado persistente e a ação **Parar**. |
 | `FOREGROUND_SERVICE` | Manter o monitoramento contínuo em um serviço visível ao usuário. |
 | `FOREGROUND_SERVICE_SPECIAL_USE` | Declarar o caso de uso contínuo de alertas de conectividade no Android atual. |
 | `RECEIVE_BOOT_COMPLETED` | Retomar o serviço depois do boot somente se o usuário o havia ativado. |
 
-O MVP não solicita localização, microfone, telefone, SMS, contatos ou armazenamento.
+O MVP não declara `INTERNET` e não solicita localização, microfone, telefone, SMS, contatos ou armazenamento. A validação celular é fornecida pelo próprio Android, sem host externo configurado pelo aplicativo.
 
 ## Versionamento e releases
 
@@ -95,6 +98,7 @@ Os valores devem ser iguais. A aprovação para produção exige concluir os gat
 ## Limitações conhecidas e gates de liberação
 
 - A validação completa de perda e recuperação de dados móveis exige um aparelho físico com SIM/eSIM e é um gate obrigatório antes de uma versão de produção.
+- O gate celular deve manter o Wi‑Fi ligado ao alternar os dados móveis e observar pelo menos três ciclos inalterados de 60 segundos sem atualização ou narração duplicada.
 - A narração audível, a ausência de voz com a opção desligada e o fluxo sem mecanismo TTS precisam ser confirmados em dispositivo interativo; o AVD headless não oferece evidência de áudio confiável.
 - Portais cativos e redes sem internet dependem do momento em que o Android marca a rede como validada e ainda exigem um ambiente de rede dedicado.
 - Após reativar o Wi‑Fi, associação e validação do próprio AVD podem acrescentar vários segundos ao intervalo configurado. O temporizador do aplicativo começa quando o Android entrega o novo estado.

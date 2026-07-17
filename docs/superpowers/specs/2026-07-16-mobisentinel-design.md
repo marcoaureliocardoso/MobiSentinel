@@ -5,6 +5,8 @@ Data: 16 de julho de 2026
 ## Documentos relacionados
 
 - [Plano de implementação do MVP](../plans/2026-07-16-mobisentinel-mvp.md)
+- [Validação celular ativa e independente](2026-07-16-cellular-active-validation-design.md)
+- [Plano de validação celular ativa](../plans/2026-07-17-cellular-active-validation.md)
 - [Matriz de validação manual e gates de liberação](../../testing/manual-test-matrix.md)
 
 ## Objetivo
@@ -18,7 +20,7 @@ O aplicativo funciona inteiramente no aparelho. O MVP não possui conta, servido
 - Android nativo.
 - Kotlin.
 - Jetpack Compose para a interface.
-- `ConnectivityManager` e `NetworkCallback` para observação das redes.
+- `ConnectivityManager` e `NetworkCallback` para observação do Wi‑Fi e solicitação temporária da rede celular.
 - `TextToSpeech` para narração.
 - Preferences DataStore para persistência das configurações.
 - Serviço em primeiro plano para monitoramento contínuo.
@@ -32,7 +34,7 @@ O aplicativo será dividido em unidades com responsabilidades específicas:
 1. **Interface Compose:** apresenta os estados e permite alterar configurações.
 2. **Repositório de preferências:** persiste configurações e as disponibiliza para a interface e o serviço.
 3. **Serviço de monitoramento:** mantém o monitoramento ativo, publica a notificação persistente e coordena os componentes internos.
-4. **Observador de redes:** converte callbacks do Android em estados brutos separados para Wi‑Fi e dados móveis.
+4. **Observador de redes:** converte callbacks passivos de Wi‑Fi e resultados da sonda celular ativa em estados brutos separados.
 5. **Máquina de estados:** confirma transições após os intervalos configurados e elimina oscilações.
 6. **Narrador:** transforma transições confirmadas em mensagens e as reproduz por Text-to-Speech quando habilitadas.
 7. **Receptor de inicialização:** solicita a retomada do serviço após a reinicialização do aparelho, desde que o usuário já tenha ativado o monitoramento.
@@ -47,14 +49,16 @@ Cada transporte, Wi‑Fi ou dados móveis, possui um estado independente:
 - **Conectado sem internet:** há uma rede do transporte, mas o Android não a considera validada para acesso à internet.
 - **Conectado com internet:** há uma rede do transporte com capacidade de internet validada pelo Android.
 
-O MVP usa a validação fornecida pelo sistema operacional. Não realiza pings periódicos nem depende de servidores externos.
+O MVP usa a validação fornecida pelo sistema operacional. O Wi‑Fi é observado passivamente. A rede móvel é solicitada temporariamente ao iniciar, após eventos relevantes e 60 segundos depois do término da verificação anterior; cada solicitação aguarda por até 15 segundos a capacidade `NET_CAPABILITY_VALIDATED`.
+
+O aplicativo não realiza pings nem abre conexões próprias com servidores externos. A sonda celular depende somente da validação executada pelo Android.
 
 Uma rede com portal de autenticação permanece no estado "conectado sem internet" até ser validada pelo Android. VPN não é apresentada como um terceiro transporte.
 
 ## Fluxo de eventos
 
-1. O Android informa uma mudança de disponibilidade ou capacidade.
-2. O observador produz um estado provisório para o transporte afetado.
+1. O Android informa uma mudança de disponibilidade ou capacidade; eventos celulares e de modo avião solicitam verificações independentes.
+2. O observador produz um estado provisório de Wi‑Fi a partir dos callbacks ou um estado celular a partir da sonda ativa.
 3. A máquina de estados inicia o temporizador correspondente.
 4. Se o estado mudar novamente antes do prazo, o temporizador anterior é cancelado.
 5. Se o estado permanecer estável, ele se torna o estado confirmado.
@@ -110,14 +114,14 @@ O aplicativo explica o monitoramento contínuo e a notificação persistente, so
 
 O monitoramento contínuo usa um serviço em primeiro plano com notificação persistente. A notificação apresenta “MobiSentinel monitorando conexões” e um resumo compacto dos estados de Wi‑Fi e dados móveis. Ao tocá-la, o usuário volta à tela principal.
 
-O serviço deve tolerar recriação pelo Android, registrar callbacks uma única vez por instância, liberar callbacks e Text-to-Speech ao encerrar e reconstruir o estado a partir das preferências persistidas.
+O serviço deve tolerar recriação pelo Android, registrar callbacks uma única vez por instância, cancelar temporizador e sonda ativa, liberar callbacks e Text-to-Speech ao encerrar e reconstruir o estado a partir das preferências persistidas.
 
 ## Tratamento de falhas
 
 - Falha ou atraso na inicialização do Text-to-Speech não impede a atualização dos estados.
 - Uma mensagem que não pôde ser narrada não é reproduzida posteriormente, pois pode estar desatualizada.
 - A interface apresenta orientação quando não houver mecanismo de voz adequado.
-- Modo avião leva os dois transportes ao estado desconectado após o intervalo de confirmação.
+- Modo avião não determina diretamente o estado de nenhum transporte. O evento dispara uma reavaliação independente do Wi‑Fi e uma sonda celular; somente os resultados dessas verificações entram no debounce e podem produzir avisos.
 - Se o serviço for encerrado pelo sistema ou pelo fabricante, o aplicativo tenta retomá-lo dentro das possibilidades oferecidas pelo Android e indica na interface quando o monitoramento não está ativo.
 - Exceções em callbacks ou no narrador são isoladas e não encerram o processo de monitoramento.
 
@@ -130,7 +134,7 @@ O serviço deve tolerar recriação pelo Android, registrar callbacks uma única
 
 ## Privacidade e permissões
 
-O aplicativo não envia dados para servidores. Ele solicita apenas permissões necessárias ao estado de rede, serviço em primeiro plano, inicialização e notificações. Não solicita localização, acesso a chamadas, contatos, microfone ou arquivos.
+O aplicativo não envia dados para servidores e não declara a permissão `INTERNET`. `ACCESS_NETWORK_STATE` permite observar capacidades e `CHANGE_NETWORK_STATE` permite solicitar temporariamente uma rede celular. As demais permissões cobrem serviço em primeiro plano, inicialização e notificações. Não solicita localização, acesso a chamadas, contatos, microfone ou arquivos.
 
 ## Estratégia de testes
 
@@ -143,6 +147,9 @@ O aplicativo não envia dados para servidores. Ele solicita apenas permissões n
 - Seleção independente de narração para Wi‑Fi e dados móveis.
 - Ordem e substituição das mensagens na fila do narrador.
 - Recuperação das preferências persistidas.
+- Mapeamento dos quatro resultados da sonda celular e preservação do estado em falha interna.
+- Timeout de 15 segundos, período de 60 segundos, execução única, coalescimento e cancelamento da sonda.
+- Independência de modo avião, Wi‑Fi e celular, incluindo supressão dos callbacks causados pela própria rede temporária.
 
 ### Testes de integração e interface
 
@@ -156,7 +163,7 @@ O aplicativo não envia dados para servidores. Ele solicita apenas permissões n
 
 - Perda e retorno do Wi‑Fi.
 - Wi‑Fi conectado sem internet ou com portal de autenticação.
-- Modo avião.
+- Modo avião como gatilho, sem inferência direta, inclusive com Wi‑Fi religado enquanto ele permanece ativo.
 - Reinicialização do aparelho.
 - Falha e recuperação do Text-to-Speech.
 - Perda e retorno de dados móveis em aparelho físico com chip.
