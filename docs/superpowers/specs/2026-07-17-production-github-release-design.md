@@ -22,6 +22,7 @@ Esta mudança cria a primeira distribuição de produção pelo GitHub. Google P
 - A narração ligada e o silêncio com a narração desligada foram confirmados manualmente pelo proprietário, inclusive no cenário celular que permanecia aberto.
 - Quatro cenários serão adiados e tratados como riscos aceitos, sem serem descritos como aprovados: TTS indisponível, Wi-Fi sem internet/portal cativo, execução prolongada sob restrições agressivas de bateria e aparelho físico Android 8–11.
 - Nenhum teste em dispositivo físico será gate obrigatório da release. A ausência de nova execução no Moto G54 ou em outro aparelho não impedirá a publicação.
+- Os testes instrumentados em emulador serão mantidos como gate automatizado no GitHub Actions, pois os runners Linux hospedados pelo GitHub oferecem aceleração para ferramentas do Android SDK.
 
 ## Objetivos
 
@@ -105,6 +106,7 @@ Antes de produzir o APK:
 - testes JVM debug e release aplicáveis;
 - lint debug e release;
 - build debug para preservar o fluxo de desenvolvimento;
+- `connectedDebugAndroidTest` em emulador API 35 hospedado pelo GitHub Actions;
 - build `release` assinado;
 - testes do verificador de artefato.
 
@@ -125,9 +127,11 @@ O caminho positivo deve comprovar:
 - ausência da flag de depuração;
 - SHA-256 reproduzido a partir do arquivo publicado.
 
-## Política de validação em dispositivo físico
+## Política de validação em emulador e dispositivo físico
 
-Não haverá teste obrigatório em dispositivo físico para a 1.0.0. Os gates de publicação serão exclusivamente os testes automatizados, lint, build assinado e inspeções do APK descritos nesta especificação.
+Não haverá teste obrigatório em dispositivo físico para a 1.0.0. Haverá, porém, teste instrumentado obrigatório em emulador API 35 no GitHub Actions. O job habilitará KVM em runner Linux, iniciará uma imagem x86_64 sem interface e executará `connectedDebugAndroidTest` por uma Action de emulador fixada por SHA completo.
+
+Falha de boot, timeout ou falha de teste fará o job falhar. É permitido reexecutar o job quando houver indício de instabilidade da infraestrutura, mas não pular silenciosamente o gate. Se a indisponibilidade persistir, a release permanecerá como pré-release até uma execução bem-sucedida ou uma alteração explícita desta política.
 
 As evidências já registradas no Moto G54 5G continuam válidas como histórico de desenvolvimento. Instalação e smoke test do candidato assinado poderão ser executados quando houver conveniência, mas a ausência dessa execução não bloqueará a promoção da release.
 
@@ -139,7 +143,7 @@ A revisão deve localizar referências obsoletas por busca global e atualizar, n
 
 - `README.md`: instalação produtiva, diferença debug/release, nova identidade, verificação SHA-256/certificado, riscos aceitos e rota futura para Play;
 - `CHANGELOG.md`: mudança incompatível da identidade e primeira release estável, gerada/revisada pela PR de release;
-- `docs/testing/manual-test-matrix.md`: narração confirmada, quatro riscos adiados, remoção de gates físicos obrigatórios e distinção entre evidência histórica e validação opcional;
+- `docs/testing/manual-test-matrix.md`: narração confirmada, quatro riscos adiados, remoção de gates físicos obrigatórios, emulador automatizado obrigatório e distinção entre evidência histórica e validação física opcional;
 - `SECURITY.md`: reporte de vulnerabilidades, tratamento da chave, fingerprint oficial e resposta a comprometimento;
 - `PRIVACY.md`: processamento local, ausência de conta/backend/analytics e dados não coletados/compartilhados;
 - runbook de produção: criação/restauração dos secrets, build, verificação, rollback e promoção;
@@ -185,7 +189,7 @@ No futuro, o app deverá usar o mesmo pacote e preservar o mesmo certificado de 
 3. A master continua passando todos os gates existentes.
 4. O APK release assinado passa testes de pacote, versão, debuggable, assinatura, fingerprint e checksum.
 5. O workflow mantém falhas como pré-release e só promove após todos os gates automatizados.
-6. Nenhum critério de aceite exige emulador ou dispositivo físico.
+6. `connectedDebugAndroidTest` passa no emulador API 35 do GitHub Actions; nenhum critério de aceite exige dispositivo físico.
 7. A documentação não contém instruções produtivas contraditórias nem apresenta riscos adiados como aprovados.
 8. A PR de implementação é revisada e aprovada antes do merge.
 9. A PR de release 1.0.0 é revisada e aprovada separadamente antes do merge.
