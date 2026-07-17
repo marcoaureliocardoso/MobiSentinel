@@ -6,7 +6,7 @@ plugins {
     alias(libs.plugins.compose.compiler)
 }
 
-val appVersion = AppVersion.parse("0.1.0") // x-release-please-version
+val appVersion = AppVersion.parse("0.1.1") // x-release-please-version
 
 android {
     namespace = "com.mobisentinel.app"

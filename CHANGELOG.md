@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.1](https://github.com/marcoaureliocardoso/MobiSentinel/compare/v0.1.0...v0.1.1) (2026-07-17)
+
+
+### Bug Fixes
+
+* add temporary cellular validation probe ([3dd499a](https://github.com/marcoaureliocardoso/MobiSentinel/commit/3dd499aa4940a12dbc2ec864b6d8a9abaf9f4eba))
+* declare cellular sdk guard to lint ([4334e60](https://github.com/marcoaureliocardoso/MobiSentinel/commit/4334e60d12ec39162ceddcf4121e23b4c46f876d))
+* define cellular validation policy ([885fc8f](https://github.com/marcoaureliocardoso/MobiSentinel/commit/885fc8ff37d66c741e9b0018212df8e1631a23c4))
+* preserve network monitoring on legacy Android ([369417d](https://github.com/marcoaureliocardoso/MobiSentinel/commit/369417d8583019676e8214a5f45022fa29c3f1c0))
+* release cancelled cellular probes safely ([4977482](https://github.com/marcoaureliocardoso/MobiSentinel/commit/49774821eab3152fb15082778704681c56794871))
+* schedule cellular validation probes ([51c58db](https://github.com/marcoaureliocardoso/MobiSentinel/commit/51c58db9116df0b4a04a44c44969b70bb25d3f5d))
+* validate cellular connectivity independently ([0dffbe4](https://github.com/marcoaureliocardoso/MobiSentinel/commit/0dffbe4e4be71f6e0bc9b046e034539adb0afac6))
+* validate cellular connectivity independently ([206c9c1](https://github.com/marcoaureliocardoso/MobiSentinel/commit/206c9c11e6561bbf0d6bfd056716651588989dd7))
+
 ## 0.1.0 (2026-07-16)
 
 
