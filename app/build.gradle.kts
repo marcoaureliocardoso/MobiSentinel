@@ -1,3 +1,4 @@
+import com.mobisentinel.signing.ReleaseSigningEnvironment
 import com.mobisentinel.versioning.AppVersion
 
 plugins {
@@ -7,6 +8,10 @@ plugins {
 }
 
 val appVersion = AppVersion.parse("0.1.1") // x-release-please-version
+val releaseSigning = ReleaseSigningEnvironment.resolve(
+    environment = System.getenv(),
+    taskNames = gradle.startParameter.taskNames,
+)
 
 android {
     namespace = "br.com.marcocardoso.mobisentinel"
@@ -22,8 +27,22 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    val productionSigningConfig = releaseSigning?.let { credentials ->
+        val signingFile = file(credentials.storeFile)
+        require(signingFile.isFile) {
+            "ANDROID_SIGNING_STORE_FILE does not point to a readable file"
+        }
+        signingConfigs.create("production") {
+            storeFile = signingFile
+            storePassword = credentials.storePassword
+            keyAlias = credentials.keyAlias
+            keyPassword = credentials.keyPassword
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig = productionSigningConfig
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
