@@ -21,6 +21,7 @@ Esta mudança cria a primeira distribuição de produção pelo GitHub. Google P
 - O backup não receberá uma segunda camada de criptografia. A chave continuará protegida pela senha obrigatória do próprio keystore, mas o arquivo de recuperação com as credenciais ficará na mesma pasta por decisão explícita do proprietário.
 - A narração ligada e o silêncio com a narração desligada foram confirmados manualmente pelo proprietário, inclusive no cenário celular que permanecia aberto.
 - Quatro cenários serão adiados e tratados como riscos aceitos, sem serem descritos como aprovados: TTS indisponível, Wi-Fi sem internet/portal cativo, execução prolongada sob restrições agressivas de bateria e aparelho físico Android 8–11.
+- Nenhum teste em dispositivo físico será gate obrigatório da release. A ausência de nova execução no Moto G54 ou em outro aparelho não impedirá a publicação.
 
 ## Objetivos
 
@@ -124,21 +125,13 @@ O caminho positivo deve comprovar:
 - ausência da flag de depuração;
 - SHA-256 reproduzido a partir do arquivo publicado.
 
-## Validação no Moto G54 5G
+## Política de validação em dispositivo físico
 
-O candidato assinado será instalado como aplicativo novo. A validação mínima da própria variante `release` inclui:
+Não haverá teste obrigatório em dispositivo físico para a 1.0.0. Os gates de publicação serão exclusivamente os testes automatizados, lint, build assinado e inspeções do APK descritos nesta especificação.
 
-- instalação e abertura;
-- ativação, permissão, foreground service e notificação;
-- perda/recuperação individual de Wi-Fi;
-- perda/recuperação individual de dados móveis com Wi-Fi ligado e desligado;
-- narração ligada e silêncio quando desligada;
-- modo avião sem inferência global imediata;
-- tela apagada/segundo plano;
-- reinício ativado, parada explícita e reinício parado;
-- ausência de crash e de callbacks/sondas temporárias órfãs.
+As evidências já registradas no Moto G54 5G continuam válidas como histórico de desenvolvimento. Instalação e smoke test do candidato assinado poderão ser executados quando houver conveniência, mas a ausência dessa execução não bloqueará a promoção da release.
 
-A aprovação anterior do build debug continua como evidência de desenvolvimento, mas não substitui o smoke test do APK release assinado.
+Se um teste físico opcional for executado e revelar uma falha crítica conhecida antes da promoção, a falha deverá ser corrigida ou explicitamente reclassificada; a natureza opcional do teste não autoriza ignorar um defeito já observado.
 
 ## Documentação
 
@@ -146,7 +139,7 @@ A revisão deve localizar referências obsoletas por busca global e atualizar, n
 
 - `README.md`: instalação produtiva, diferença debug/release, nova identidade, verificação SHA-256/certificado, riscos aceitos e rota futura para Play;
 - `CHANGELOG.md`: mudança incompatível da identidade e primeira release estável, gerada/revisada pela PR de release;
-- `docs/testing/manual-test-matrix.md`: narração confirmada, quatro riscos adiados e evidência do APK assinado;
+- `docs/testing/manual-test-matrix.md`: narração confirmada, quatro riscos adiados, remoção de gates físicos obrigatórios e distinção entre evidência histórica e validação opcional;
 - `SECURITY.md`: reporte de vulnerabilidades, tratamento da chave, fingerprint oficial e resposta a comprometimento;
 - `PRIVACY.md`: processamento local, ausência de conta/backend/analytics e dados não coletados/compartilhados;
 - runbook de produção: criação/restauração dos secrets, build, verificação, rollback e promoção;
@@ -191,8 +184,8 @@ No futuro, o app deverá usar o mesmo pacote e preservar o mesmo certificado de 
 2. Backup e recuperação são confirmados no Google Drive pessoal.
 3. A master continua passando todos os gates existentes.
 4. O APK release assinado passa testes de pacote, versão, debuggable, assinatura, fingerprint e checksum.
-5. O APK release passa o smoke test definido no Moto G54 5G.
-6. O workflow mantém falhas como pré-release e só promove após todos os gates.
+5. O workflow mantém falhas como pré-release e só promove após todos os gates automatizados.
+6. Nenhum critério de aceite exige emulador ou dispositivo físico.
 7. A documentação não contém instruções produtivas contraditórias nem apresenta riscos adiados como aprovados.
 8. A PR de implementação é revisada e aprovada antes do merge.
 9. A PR de release 1.0.0 é revisada e aprovada separadamente antes do merge.
