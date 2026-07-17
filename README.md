@@ -11,7 +11,7 @@ O MVP funciona inteiramente no aparelho: não possui conta, backend, analytics o
 - Android Studio Quail 1 ou uma instalação compatível com AGP 8.13.2.
 - Android SDK em `C:\Users\Marco\AppData\Local\Android\Sdk`, ou `local.properties` ajustado para outro caminho.
 - Android SDK Platform 36 e Build Tools compatíveis.
-- Emulador ou aparelho com Android 8.0/API 26 ou superior. A validação registrada usou o AVD `Codex_API_35`, API 35.
+- Emulador ou aparelho com Android 8.0/API 26 ou superior. A validação automatizada e física registrada usou o AVD `Codex_API_35` e um Moto G54 5G com Android 15/API 35.
 
 O aplicativo usa `compileSdk` e `targetSdk` 36, com `minSdk` 26.
 
@@ -52,12 +52,14 @@ $adb = 'C:\Users\Marco\AppData\Local\Android\Sdk\platform-tools\adb.exe'
 - A interface Jetpack Compose e o `MainViewModel` apresentam o snapshot confirmado e persistem as preferências.
 - `ConnectivityManager.NetworkCallback` observa o Wi‑Fi passivamente. Para manter o diagnóstico celular independente do Wi‑Fi, o aplicativo solicita temporariamente uma rede móvel ao iniciar, após eventos relevantes e 60 segundos depois da verificação anterior.
 - A sonda celular aguarda por até 15 segundos a capacidade `NET_CAPABILITY_VALIDATED`; callbacks celulares passivos apenas disparam uma nova verificação e nunca definem o estado diretamente.
+- No Android 12/API 31 ou superior, mudanças na opção de dados móveis também disparam uma sonda por `TelephonyCallback`. No Android 8–11/API 26–30, o app preserva os gatilhos inicial, periódico, passivo e de modo avião sem solicitar `READ_PHONE_STATE`.
 - Modo avião é somente um gatilho: Wi‑Fi e celular são reavaliados separadamente, sem inferência automática de desconexão.
+- O receiver dinâmico de modo avião aceita broadcasts do sistema. O cancelamento da sonda sincroniza registro e liberação para que uma solicitação em andamento seja removida exatamente uma vez.
 - A máquina de transições elimina oscilações usando atrasos independentes para perda e recuperação.
 - `MonitoringEngine` coordena observação, estado confirmado, preferências e narração.
 - `TextToSpeech` e uma fila por transporte serializam os anúncios em português.
 - `MonitoringService` mantém o trabalho contínuo como foreground service e atualiza a notificação de ID `1001` no canal `mobisentinel_monitoring`.
-- Preferences DataStore guarda ativação, opções de voz e atrasos. `BootReceiver` retoma o serviço apenas quando a ativação persistida continua ligada.
+- Preferences DataStore guarda ativação, opções de voz e atrasos. `BootReceiver` retoma o serviço, após o primeiro desbloqueio do Android, apenas quando a ativação persistida continua ligada.
 
 A especificação e o plano detalhados estão em [design do MVP](docs/superpowers/specs/2026-07-16-mobisentinel-design.md), [plano do MVP](docs/superpowers/plans/2026-07-16-mobisentinel-mvp.md), [validação celular ativa](docs/superpowers/specs/2026-07-16-cellular-active-validation-design.md), [plano da validação celular](docs/superpowers/plans/2026-07-17-cellular-active-validation.md), [especificação de automação de releases](docs/superpowers/specs/2026-07-16-release-automation-design.md) e [plano de automação de releases](docs/superpowers/plans/2026-07-16-release-automation.md).
 
@@ -97,12 +99,12 @@ Os valores devem ser iguais. A aprovação para produção exige concluir os gat
 
 ## Limitações conhecidas e gates de liberação
 
-- A validação completa de perda e recuperação de dados móveis exige um aparelho físico com SIM/eSIM e é um gate obrigatório antes de uma versão de produção.
+- Perda e recuperação de dados móveis, com e sem Wi‑Fi, passaram no Moto G54 5G com dois SIMs ativos. Outros aparelhos e políticas de fabricantes continuam sendo gates antes de uma versão de produção.
 - O gate celular deve manter o Wi‑Fi ligado ao alternar os dados móveis e observar pelo menos três ciclos inalterados de 60 segundos sem atualização ou narração duplicada.
 - A narração audível, a ausência de voz com a opção desligada e o fluxo sem mecanismo TTS precisam ser confirmados em dispositivo interativo; o AVD headless não oferece evidência de áudio confiável.
 - Portais cativos e redes sem internet dependem do momento em que o Android marca a rede como validada e ainda exigem um ambiente de rede dedicado.
 - Após reativar o Wi‑Fi, associação e validação do próprio AVD podem acrescentar vários segundos ao intervalo configurado. O temporizador do aplicativo começa quando o Android entrega o novo estado.
-- O modelo celular do emulador não substitui uma rede móvel física.
+- O modelo celular do emulador não substitui uma rede móvel física. O gate atual inclui 67 testes JVM e 13 testes instrumentados, além da matriz física no Moto G54 5G.
 - Fabricantes podem impor restrições adicionais de bateria e inicialização automática. O comportamento deve ser revalidado nos aparelhos-alvo.
 - A voz e o idioma disponíveis dependem do mecanismo Text-to-Speech instalado no Android.
 - Uma publicação futura no Google Play requer declaração e revisão do foreground service `specialUse`. Publicação não faz parte deste MVP.

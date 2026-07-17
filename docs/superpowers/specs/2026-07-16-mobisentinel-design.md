@@ -122,6 +122,9 @@ O serviço deve tolerar recriação pelo Android, registrar callbacks uma única
 - Uma mensagem que não pôde ser narrada não é reproduzida posteriormente, pois pode estar desatualizada.
 - A interface apresenta orientação quando não houver mecanismo de voz adequado.
 - Modo avião não determina diretamente o estado de nenhum transporte. O evento dispara uma reavaliação independente do Wi‑Fi e uma sonda celular; somente os resultados dessas verificações entram no debounce e podem produzir avisos.
+- O receiver dinâmico de modo avião deve aceitar broadcasts do sistema. O evento continua sendo apenas um gatilho e não produz estado por conta própria.
+- `TelephonyCallback.UserMobileDataStateListener` é usado somente no Android 12/API 31 ou superior. No Android 8–11/API 26–30, o monitoramento usa os gatilhos inicial, periódico, passivo e de modo avião para não exigir `READ_PHONE_STATE`.
+- O cancelamento da sonda coordena o término do registro com a liberação, evitando tanto `unregister` prematuro quanto callback retido.
 - Se o serviço for encerrado pelo sistema ou pelo fabricante, o aplicativo tenta retomá-lo dentro das possibilidades oferecidas pelo Android e indica na interface quando o monitoramento não está ativo.
 - Exceções em callbacks ou no narrador são isoladas e não encerram o processo de monitoramento.
 
@@ -149,6 +152,8 @@ O aplicativo não envia dados para servidores e não declara a permissão `INTER
 - Recuperação das preferências persistidas.
 - Mapeamento dos quatro resultados da sonda celular e preservação do estado em falha interna.
 - Timeout de 15 segundos, período de 60 segundos, execução única, coalescimento e cancelamento da sonda.
+- Cancelamento durante o próprio registro da sonda, com liberação única somente depois que o registro termina.
+- Política de compatibilidade API 26–30/API 31+ e receiver de modo avião apto a receber eventos do sistema.
 - Independência de modo avião, Wi‑Fi e celular, incluindo supressão dos callbacks causados pela própria rede temporária.
 
 ### Testes de integração e interface
@@ -167,6 +172,8 @@ O aplicativo não envia dados para servidores e não declara a permissão `INTER
 - Reinicialização do aparelho.
 - Falha e recuperação do Text-to-Speech.
 - Perda e retorno de dados móveis em aparelho físico com chip.
+
+Em 17 de julho de 2026, a matriz física passou em um Moto G54 5G com Android 15/API 35 e dois SIMs ativos: perda e recuperação celular com Wi‑Fi ligado e desligado, modo avião sem inferência direta, Wi‑Fi independente durante modo avião, três ciclos periódicos estáveis, tela apagada, reinício habilitado e reinício após parada explícita. Portal cativo, ausência de mecanismo TTS e restrições prolongadas de bateria permanecem dependentes de ambiente específico.
 
 ## Critérios de aceite do MVP
 
