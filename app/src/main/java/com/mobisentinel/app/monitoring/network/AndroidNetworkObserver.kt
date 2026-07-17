@@ -1,5 +1,3 @@
-@file:Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
-
 package com.mobisentinel.app.monitoring.network
 
 import android.content.BroadcastReceiver
@@ -11,17 +9,12 @@ import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.os.Build
-import android.os.Handler
-import android.os.Looper
-import android.telephony.PhoneStateListener
 import android.telephony.TelephonyCallback
 import android.telephony.TelephonyManager
 import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
 import com.mobisentinel.app.monitoring.model.ConnectivityState
 import com.mobisentinel.app.monitoring.model.TransportSnapshot
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
@@ -36,7 +29,6 @@ class AndroidNetworkObserver(
     cellularProbe: CellularValidationProbe,
 ) : NetworkObserver {
     private val lock = Any()
-    private val mainHandler = Handler(Looper.getMainLooper())
     private val mutableStates = MutableSharedFlow<TransportSnapshot>(
         extraBufferCapacity = 8,
         onBufferOverflow = BufferOverflow.DROP_OLDEST,
@@ -63,7 +55,6 @@ class AndroidNetworkObserver(
     private var airplaneRegistered = false
     private var mobileDataRegistered = false
     private var modernMobileDataCallback: Any? = null
-    private var legacyMobileDataListener: PhoneStateListener? = null
 
     init {
         lateinit var coordinator: CellularProbeCoordinator
@@ -118,7 +109,7 @@ class AndroidNetworkObserver(
                 context,
                 airplaneReceiver,
                 IntentFilter(Intent.ACTION_AIRPLANE_MODE_CHANGED),
-                ContextCompat.RECEIVER_NOT_EXPORTED,
+                AndroidNetworkTriggerPolicy.AIRPLANE_RECEIVER_FLAGS,
             )
             airplaneRegistered = true
             mobileDataRegistered = registerMobileDataListener()
@@ -223,16 +214,12 @@ class AndroidNetworkObserver(
         }
     }
 
-    private fun registerMobileDataListener(): Boolean = when {
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            registerModernMobileDataListener()
-            true
+    private fun registerMobileDataListener(): Boolean {
+        if (!AndroidNetworkTriggerPolicy.shouldRegisterUserMobileDataCallback(Build.VERSION.SDK_INT)) {
+            return false
         }
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.P -> {
-            registerLegacyMobileDataListener()
-            true
-        }
-        else -> false
+        registerModernMobileDataListener()
+        return true
     }
 
     @RequiresApi(Build.VERSION_CODES.S)
@@ -247,39 +234,13 @@ class AndroidNetworkObserver(
         modernMobileDataCallback = callback
     }
 
-    @RequiresApi(Build.VERSION_CODES.P)
-    @Suppress("DEPRECATION")
-    private fun registerLegacyMobileDataListener() {
-        runOnMainThread {
-            val listener = object : PhoneStateListener() {
-                override fun onUserMobileDataStateChanged(enabled: Boolean) {
-                    triggerFromMobileDataSetting()
-                }
-            }
-            telephonyManager.listen(listener, PhoneStateListener.LISTEN_USER_MOBILE_DATA_STATE)
-            legacyMobileDataListener = listener
-        }
-    }
-
     private fun triggerFromMobileDataSetting() {
         if (started) probeCoordinator.trigger()
     }
 
-    @Suppress("DEPRECATION")
     private fun unregisterMobileDataListener() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             unregisterModernMobileDataListener()
-        } else {
-            runOnMainThread {
-                val listener = legacyMobileDataListener
-                try {
-                    if (listener != null) {
-                        telephonyManager.listen(listener, PhoneStateListener.LISTEN_NONE)
-                    }
-                } finally {
-                    legacyMobileDataListener = null
-                }
-            }
         }
     }
 
@@ -330,31 +291,4 @@ class AndroidNetworkObserver(
         }
     }
 
-    private fun runOnMainThread(block: () -> Unit) {
-        if (Looper.myLooper() == Looper.getMainLooper()) {
-            block()
-            return
-        }
-
-        val completion = CountDownLatch(1)
-        val failure = AtomicReference<Throwable?>()
-        check(
-            mainHandler.post {
-                try {
-                    block()
-                } catch (caught: Throwable) {
-                    failure.set(caught)
-                } finally {
-                    completion.countDown()
-                }
-            },
-        )
-        try {
-            completion.await()
-        } catch (interrupted: InterruptedException) {
-            Thread.currentThread().interrupt()
-            throw IllegalStateException("Interrupted while waiting for the Android main thread", interrupted)
-        }
-        failure.get()?.let { throw IllegalStateException("Android main-thread operation failed", it) }
-    }
 }
