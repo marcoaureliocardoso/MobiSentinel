@@ -9,11 +9,11 @@ plugins {
 val appVersion = AppVersion.parse("0.1.1") // x-release-please-version
 
 android {
-    namespace = "com.mobisentinel.app"
+    namespace = "br.com.marcocardoso.mobisentinel"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.mobisentinel.app"
+        applicationId = "br.com.marcocardoso.mobisentinel"
         minSdk = 26
         targetSdk = 36
         versionCode = appVersion.versionCode
