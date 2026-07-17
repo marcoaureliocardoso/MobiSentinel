@@ -25,6 +25,12 @@ class TransportNetworkTracker<K> {
         return aggregate()
     }
 
+    fun replace(networks: Iterable<Pair<K, Boolean>>): ConnectivityState {
+        validationByNetwork.clear()
+        networks.forEach { (id, validated) -> validationByNetwork[id] = validated }
+        return aggregate()
+    }
+
     private fun aggregate(): ConnectivityState = when {
         validationByNetwork.values.any { it } -> ConnectivityState.CONNECTED
         validationByNetwork.isNotEmpty() -> ConnectivityState.CONNECTED_NO_INTERNET

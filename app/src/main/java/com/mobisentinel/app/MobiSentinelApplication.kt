@@ -3,9 +3,12 @@ package com.mobisentinel.app
 import android.app.Application
 import android.content.Context
 import android.net.ConnectivityManager
+import android.telephony.TelephonyManager
 import androidx.datastore.preferences.preferencesDataStore
 import com.mobisentinel.app.monitoring.MonitoringEngine
 import com.mobisentinel.app.monitoring.MonitoringStateStore
+import com.mobisentinel.app.monitoring.network.AndroidCellularNetworkRequester
+import com.mobisentinel.app.monitoring.network.AndroidCellularValidationProbe
 import com.mobisentinel.app.monitoring.network.AndroidNetworkObserver
 import com.mobisentinel.app.preferences.DataStoreSettingsRepository
 import com.mobisentinel.app.preferences.SettingsRepository
@@ -29,10 +32,20 @@ class MobiSentinelApplication : Application() {
 
     fun createMonitoringEngine(scope: CoroutineScope): MonitoringEngine {
         val connectivityManager = getSystemService(ConnectivityManager::class.java)
+        val telephonyManager = getSystemService(TelephonyManager::class.java)
+        val cellularProbe = AndroidCellularValidationProbe(
+            AndroidCellularNetworkRequester(connectivityManager),
+        )
         val speechController = AndroidSpeechController(this, mutableSpeechAvailability)
         return MonitoringEngine(
             parentScope = scope,
-            networkObserver = AndroidNetworkObserver(connectivityManager),
+            networkObserver = AndroidNetworkObserver(
+                context = this,
+                connectivityManager = connectivityManager,
+                telephonyManager = telephonyManager,
+                scope = scope,
+                cellularProbe = cellularProbe,
+            ),
             settingsRepository = settingsRepository,
             speechController = speechController,
             stateStore = monitoringStateStore,

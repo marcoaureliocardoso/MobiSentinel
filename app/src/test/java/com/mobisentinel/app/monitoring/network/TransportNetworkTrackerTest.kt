@@ -61,4 +61,27 @@ class TransportNetworkTrackerTest {
 
         assertEquals(ConnectivityState.CONNECTED_NO_INTERNET, state)
     }
+
+    @Test
+    fun replacingNetworksRebuildsAggregateWithoutPublishingIntermediateClear() {
+        val tracker = TransportNetworkTracker<String>()
+        tracker.onCapabilitiesChanged("old", validated = true)
+
+        val state = tracker.replace(
+            listOf(
+                "new-unvalidated" to false,
+                "new-validated" to true,
+            ),
+        )
+
+        assertEquals(ConnectivityState.CONNECTED, state)
+    }
+
+    @Test
+    fun replacingWithNoNetworksDisconnects() {
+        val tracker = TransportNetworkTracker<String>()
+        tracker.onCapabilitiesChanged("old", validated = true)
+
+        assertEquals(ConnectivityState.DISCONNECTED, tracker.replace(emptyList()))
+    }
 }
