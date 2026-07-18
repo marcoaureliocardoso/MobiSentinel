@@ -41,10 +41,15 @@ class MainActivity : ComponentActivity() {
                         startMonitoringWithPermission()
                     },
                     onTestVoice = { MonitoringService.testVoice(this) },
+                    onTestHaptics = { MonitoringService.testHaptics(this) },
                     onOpenVoiceSettings = ::openVoiceSettings,
                     onStopMonitoring = { MonitoringService.stop(this) },
                     onNarrateWifiChange = viewModel::setNarrateWifi,
                     onNarrateCellularChange = viewModel::setNarrateCellular,
+                    onVibrateWifiChange = viewModel::setVibrateWifi,
+                    onVibrateCellularChange = viewModel::setVibrateCellular,
+                    onQuietHoursEnabledChange = viewModel::setQuietHoursEnabled,
+                    onQuietHoursChange = viewModel::setQuietHours,
                     onLossDelayChange = viewModel::setLossDelaySeconds,
                     onRecoveryDelayChange = viewModel::setRecoveryDelaySeconds,
                 )
