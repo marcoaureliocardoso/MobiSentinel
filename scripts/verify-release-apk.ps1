@@ -4,7 +4,10 @@ param(
     [string]$Tag,
 
     [Parameter(Mandatory)]
-    [string]$ApkPath
+    [string]$ApkPath,
+
+    [Parameter(Mandatory)]
+    [string]$CertificateSha256Path
 )
 
 Set-StrictMode -Version Latest
@@ -28,6 +31,15 @@ $expectedVersionCode = [int](
     $components[0] * 1000000 + $components[1] * 1000 + $components[2]
 )
 $resolvedApk = (Resolve-Path -LiteralPath $ApkPath).Path
+$resolvedCertificateSha256 = (
+    Resolve-Path -LiteralPath $CertificateSha256Path
+).Path
+$expectedCertificateSha256 = (
+    Get-Content -LiteralPath $resolvedCertificateSha256 -Raw
+).Trim()
+if ($expectedCertificateSha256 -notmatch '^[0-9a-f]{64}$') {
+    throw 'Expected certificate SHA-256 must contain 64 lowercase hexadecimal characters'
+}
 
 function Resolve-AndroidSdk {
     if (-not [string]::IsNullOrWhiteSpace($env:ANDROID_HOME)) {
@@ -50,8 +62,13 @@ function Resolve-AndroidSdk {
     throw 'Android SDK was not found through ANDROID_HOME or local.properties'
 }
 
-function Resolve-Aapt {
-    $command = Get-Command aapt, aapt.exe -ErrorAction SilentlyContinue |
+function Resolve-AndroidBuildTool {
+    param(
+        [Parameter(Mandatory)]
+        [string[]]$Names
+    )
+
+    $command = Get-Command $Names -ErrorAction SilentlyContinue |
         Select-Object -First 1
     if ($command) {
         return $command.Source
@@ -61,22 +78,26 @@ function Resolve-Aapt {
     $directories = Get-ChildItem -LiteralPath $buildTools -Directory |
         Sort-Object {
             [version](($_.Name -split '-')[0])
-        } -Descending
+    } -Descending
     foreach ($directory in $directories) {
-        foreach ($name in @('aapt', 'aapt.exe')) {
+        foreach ($name in $Names) {
             $candidate = Join-Path $directory.FullName $name
             if (Test-Path -LiteralPath $candidate) {
                 return $candidate
             }
         }
     }
-    throw "aapt was not found under '$buildTools'"
+    throw "Android build tool '$($Names[0])' was not found under '$buildTools'"
 }
 
-$aapt = Resolve-Aapt
+$aapt = Resolve-AndroidBuildTool -Names @('aapt', 'aapt.exe')
 $badging = & $aapt dump badging $resolvedApk
 if ($LASTEXITCODE -ne 0) {
     throw "aapt failed to inspect '$resolvedApk'"
+}
+
+if ($badging | Where-Object { $_ -match '^application-debuggable' }) {
+    throw "Refusing debuggable APK '$resolvedApk'"
 }
 
 $packageLine = $badging | Select-Object -First 1
@@ -92,8 +113,8 @@ $actualPackage = $packageMatch.Groups[1].Value
 $actualVersionCode = $packageMatch.Groups[2].Value
 $actualVersionName = $packageMatch.Groups[3].Value
 
-if ($actualPackage -ne 'com.mobisentinel.app') {
-    throw "Expected package com.mobisentinel.app, found $actualPackage"
+if ($actualPackage -ne 'br.com.marcocardoso.mobisentinel') {
+    throw "Expected package br.com.marcocardoso.mobisentinel, found $actualPackage"
 }
 if ($actualVersionName -ne $versionName) {
     throw "Expected versionName $versionName, found $actualVersionName"
@@ -102,9 +123,55 @@ if ($actualVersionCode -ne $expectedVersionCode.ToString()) {
     throw "Expected versionCode $expectedVersionCode, found $actualVersionCode"
 }
 
+$apksigner = Resolve-AndroidBuildTool -Names @(
+    'apksigner',
+    'apksigner.bat',
+    'apksigner.exe'
+)
+$signatureOutput = & $apksigner verify `
+    --verbose `
+    --print-certs `
+    --min-sdk-version 26 `
+    $resolvedApk 2>&1
+if ($LASTEXITCODE -ne 0) {
+    throw (
+        "apksigner rejected '$resolvedApk': " +
+        ($signatureOutput -join [Environment]::NewLine)
+    )
+}
+
+$signatureText = $signatureOutput -join [Environment]::NewLine
+$signerCountMatch = [regex]::Match(
+    $signatureText,
+    '(?im)^Number of signers:\s*(\d+)\s*$'
+)
+if (-not $signerCountMatch.Success -or $signerCountMatch.Groups[1].Value -ne '1') {
+    throw 'Expected exactly one APK signer'
+}
+$certificateMatches = [regex]::Matches(
+    $signatureText,
+    '(?im)^(?:V\d+(?:\.\d+)? Signer|Signer #\d+): certificate SHA-256 digest:\s*([0-9a-f]{64})\s*$'
+)
+$certificateDigests = @(
+    $certificateMatches |
+        ForEach-Object { $_.Groups[1].Value.ToLowerInvariant() } |
+        Sort-Object -Unique
+)
+if ($certificateDigests.Count -ne 1) {
+    throw 'Expected exactly one APK signer certificate SHA-256 digest'
+}
+$actualCertificateSha256 = $certificateDigests[0]
+if ($actualCertificateSha256 -ne $expectedCertificateSha256) {
+    throw (
+        "Expected certificate SHA-256 $expectedCertificateSha256, " +
+        "found $actualCertificateSha256"
+    )
+}
+
 Write-Output (
-    "Verified package={0} versionName={1} versionCode={2}" -f
+    "Verified package={0} versionName={1} versionCode={2} certificateSha256={3}" -f
         $actualPackage,
         $actualVersionName,
-        $actualVersionCode
+        $actualVersionCode,
+        $actualCertificateSha256
 )
