@@ -27,7 +27,7 @@ $apksigner = Get-ChildItem "$env:ANDROID_HOME\build-tools" -Filter apksigner.bat
 
 5. Abra o APK no Android. O sistema pode pedir autorização para instalar aplicativos dessa origem; conceda-a somente ao aplicativo usado para abrir o arquivo.
 
-O identificador permanente do aplicativo é `br.com.marcocardoso.mobisentinel`. Versões experimentais antigas usavam outra identidade e não são atualizadas no lugar da versão de produção.
+O identificador permanente do aplicativo é `br.com.marcocardoso.mobisentinel`. Versões experimentais antigas usavam outra identidade, portanto podem coexistir com a versão de produção e não são atualizadas no lugar dela. Depois de confirmar que não há preferências antigas que deseje consultar, desinstale manualmente o aplicativo experimental para evitar confusão entre os dois ícones.
 
 ## Uso
 
