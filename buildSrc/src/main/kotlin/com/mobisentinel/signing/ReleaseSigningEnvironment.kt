@@ -13,6 +13,12 @@ data class ReleaseSigningEnvironment(
             "ANDROID_SIGNING_KEY_ALIAS",
             "ANDROID_SIGNING_KEY_PASSWORD",
         )
+        private val aggregateArtifactTasks = setOf(
+            "assemble",
+            "build",
+            "bundle",
+            "package",
+        )
 
         fun resolve(
             environment: Map<String, String>,
@@ -21,9 +27,9 @@ data class ReleaseSigningEnvironment(
             val values = required.associateWith { environment[it].orEmpty().trim() }
             val configured = values.filterValues { it.isNotEmpty() }
             val artifactRequested = taskNames.any { task ->
-                task.substringAfterLast(':').matches(
-                    Regex("(?i)(assemble|bundle|package).*release"),
-                )
+                val taskName = task.substringAfterLast(':')
+                taskName.lowercase() in aggregateArtifactTasks ||
+                    taskName.matches(Regex("(?i)(assemble|bundle|package).*release"))
             }
 
             if (configured.isEmpty()) {

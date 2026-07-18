@@ -282,6 +282,16 @@ jobs:
             exit 1
           fi
 
+          mkdir verified-assets
+          gh release download "$TAG" \
+            --dir verified-assets \
+            --pattern "MobiSentinel-$VERSION.apk" \
+            --pattern "MobiSentinel-$VERSION.apk.sha256"
+          (
+            cd verified-assets
+            sha256sum --check "MobiSentinel-$VERSION.apk.sha256"
+          )
+
           gh release view "$TAG" --json body --jq .body > staged-notes.md
           awk '
             /<!-- mobisentinel-staging-warning-start -->/ { skip=1; next }

@@ -44,6 +44,22 @@ class ReleaseSigningEnvironmentTest {
     }
 
     @Test
+    fun `rejects aggregate artifact tasks without credentials`() {
+        listOf(
+            "assemble",
+            ":app:build",
+            ":app:bundle",
+            ":app:package",
+        ).forEach { task ->
+            val error = assertFailsWith<IllegalStateException>(task) {
+                ReleaseSigningEnvironment.resolve(emptyMap(), listOf(task))
+            }
+
+            assertTrue(error.message.orEmpty().contains("ANDROID_SIGNING_STORE_FILE"))
+        }
+    }
+
+    @Test
     fun `rejects partial configuration without exposing values`() {
         val error = assertFailsWith<IllegalStateException> {
             ReleaseSigningEnvironment.resolve(

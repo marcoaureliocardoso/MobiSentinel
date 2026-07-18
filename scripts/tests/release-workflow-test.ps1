@@ -20,6 +20,7 @@ $requiredPatterns = [ordered]@{
     'instrumented tests' = '\bconnectedDebugAndroidTest\b'
     'production APK asset' = 'MobiSentinel-\$VERSION\.apk'
     'checksum asset' = 'MobiSentinel-\$VERSION\.apk\.sha256'
+    'published checksum verification' = 'sha256sum\s+--check\s+"MobiSentinel-\$VERSION\.apk\.sha256"'
     'always cleanup signing key' = '(?ms)- name: Remove signing key.*?if:\s*\$\{\{\s*always\(\)\s*\}\}'
     'final production promotion' = 'gh release edit "\$TAG" --prerelease=false --latest'
     'repository context for GitHub CLI' = 'GH_REPO:\s*\$\{\{\s*github\.repository\s*\}\}'
