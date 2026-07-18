@@ -10,7 +10,8 @@ $ErrorActionPreference = 'Stop'
 $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $repositoryPrefix = $repositoryRoot.TrimEnd('\', '/') + [IO.Path]::DirectorySeparatorChar
 $resolvedOutput = [IO.Path]::GetFullPath($OutputDirectory)
-if ($resolvedOutput.StartsWith($repositoryPrefix, [StringComparison]::OrdinalIgnoreCase)) {
+if ($resolvedOutput.Equals($repositoryRoot, [StringComparison]::OrdinalIgnoreCase) -or
+    $resolvedOutput.StartsWith($repositoryPrefix, [StringComparison]::OrdinalIgnoreCase)) {
     throw 'Signing recovery material must be generated outside the repository'
 }
 

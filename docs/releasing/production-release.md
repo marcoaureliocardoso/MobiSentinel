@@ -60,7 +60,7 @@ O workflow `.github/workflows/release-please.yml` precisa concluir, nesta ordem 
 2. executar `connectedDebugAndroidTest` no emulador Android 35;
 3. entrar no ambiente protegido `production`;
 4. reconstruir o PKCS#12 apenas em `$RUNNER_TEMP`;
-5. executar testes release, lint release e `assembleRelease`;
+5. executar testes, lint e builds das variantes debug e release;
 6. verificar pacote, versão, `versionCode`, ausência de `debuggable`, assinatura e certificado;
 7. apagar a cópia da chave do runner com `if: always()`;
 8. anexar exatamente o APK e seu checksum;

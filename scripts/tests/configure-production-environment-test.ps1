@@ -11,6 +11,7 @@ $temporary = Join-Path $temporaryRoot (
     'MobiSentinel-environment-test-' + [guid]::NewGuid().ToString('N')
 )
 $global:MobiSentinelFakeGhCalls = [Collections.Generic.List[string]]::new()
+$global:MobiSentinelFakeGhBranchPolicyCreated = $false
 
 function global:gh {
     [CmdletBinding(PositionalBinding = $false)]
@@ -46,6 +47,17 @@ function global:gh {
                 'ANDROID_SIGNING_KEY_PASSWORD'
             ) | Write-Output
         }
+        if ($argumentText -match '/deployment-branch-policies' -and
+            $argumentText -match '--method POST') {
+            $global:MobiSentinelFakeGhBranchPolicyCreated = $true
+        } elseif ($argumentText -match '/deployment-branch-policies' -and
+            $global:MobiSentinelFakeGhBranchPolicyCreated) {
+            'branch:master' | Write-Output
+        } elseif ($argumentText -match 'custom_branch_policies') {
+            'true' | Write-Output
+        } elseif ($argumentText -match 'protected_branches') {
+            'false' | Write-Output
+        }
     }
 }
 
@@ -67,8 +79,11 @@ try {
     }
 
     $calls = $global:MobiSentinelFakeGhCalls -join [Environment]::NewLine
-    if ($calls -notmatch 'api --method PUT repos/example/MobiSentinel/environments/production') {
-        throw 'Configurator did not create the production environment'
+    if ($calls -notmatch 'api --method PUT repos/example/MobiSentinel/environments/production --input -\|stdinLength=[1-9]\d*') {
+        throw 'Configurator did not create a custom-branch production environment'
+    }
+    if ($calls -notmatch 'api --method POST repos/example/MobiSentinel/environments/production/deployment-branch-policies -f name=master -f type=branch') {
+        throw 'Configurator did not restrict production deployments to master'
     }
     foreach ($name in @(
         'ANDROID_SIGNING_KEY_BASE64',
@@ -93,6 +108,7 @@ try {
 } finally {
     Remove-Item Function:\gh -ErrorAction SilentlyContinue
     $global:MobiSentinelFakeGhCalls = $null
+    $global:MobiSentinelFakeGhBranchPolicyCreated = $null
     $resolvedTemporary = [IO.Path]::GetFullPath($temporary)
     if (-not $resolvedTemporary.StartsWith($temporaryRoot, [StringComparison]::OrdinalIgnoreCase)) {
         throw 'Refusing to clean an environment test directory outside temp'

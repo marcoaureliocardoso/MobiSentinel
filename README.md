@@ -84,6 +84,7 @@ Comandos principais:
 .\scripts\tests\configure-production-environment-test.ps1
 .\scripts\tests\verify-release-apk-test.ps1
 .\scripts\tests\release-workflow-test.ps1
+.\scripts\tests\privacy-manifest-test.ps1
 ```
 
 Para abrir um build debug em um alvo ADB:

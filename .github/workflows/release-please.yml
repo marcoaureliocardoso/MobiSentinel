@@ -180,7 +180,13 @@ jobs:
           ANDROID_SIGNING_KEY_PASSWORD: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
         run: |
           ./gradlew -p buildSrc test
-          ./gradlew testReleaseUnitTest lintRelease assembleRelease
+          ./gradlew \
+            testDebugUnitTest \
+            testReleaseUnitTest \
+            lintDebug \
+            lintRelease \
+            assembleDebug \
+            assembleRelease
 
       - name: Verify and package signed APK
         shell: pwsh

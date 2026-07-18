@@ -67,9 +67,39 @@ foreach ($name in $requiredRecovery) {
 
 $base64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes($keystore))
 try {
-    & gh api --method PUT "repos/$Repository/environments/production" | Out-Null
+    $environmentEndpoint = "repos/$Repository/environments/production"
+    $branchPoliciesEndpoint = "$environmentEndpoint/deployment-branch-policies"
+    $environmentPolicy = @{
+        deployment_branch_policy = @{
+            protected_branches = $false
+            custom_branch_policies = $true
+        }
+    } | ConvertTo-Json -Depth 3 -Compress
+    $environmentPolicy | & gh api `
+        --method PUT `
+        $environmentEndpoint `
+        --input - | Out-Null
     if ($LASTEXITCODE -ne 0) {
-        throw "Failed to create GitHub environment 'production'"
+        throw "Failed to protect GitHub environment 'production'"
+    }
+
+    $deploymentPolicies = @(
+        & gh api $branchPoliciesEndpoint `
+            --paginate `
+            --jq '.branch_policies[] | "\(.type):\(.name)"'
+    )
+    if ($LASTEXITCODE -ne 0) {
+        throw 'Failed to list production deployment branch policies'
+    }
+    if ('branch:master' -notin $deploymentPolicies) {
+        & gh api `
+            --method POST `
+            $branchPoliciesEndpoint `
+            -f name=master `
+            -f type=branch | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            throw 'Failed to restrict production deployments to master'
+        }
     }
 
     Set-GitHubEnvironmentSecret -Name 'ANDROID_SIGNING_KEY_BASE64' -Value $base64
@@ -92,10 +122,33 @@ try {
         throw "GitHub production environment is missing: $($missing -join ', ')"
     }
 
+    $customBranchPolicies = & gh api $environmentEndpoint `
+        --jq '.deployment_branch_policy.custom_branch_policies'
+    if ($LASTEXITCODE -ne 0 -or $customBranchPolicies -ne 'true') {
+        throw 'GitHub production environment does not require custom branch policies'
+    }
+    $protectedBranches = & gh api $environmentEndpoint `
+        --jq '.deployment_branch_policy.protected_branches'
+    if ($LASTEXITCODE -ne 0 -or $protectedBranches -ne 'false') {
+        throw 'GitHub production environment has an unexpected protected-branches mode'
+    }
+    $deploymentPolicies = @(
+        & gh api $branchPoliciesEndpoint `
+            --paginate `
+            --jq '.branch_policies[] | "\(.type):\(.name)"'
+    )
+    if ($LASTEXITCODE -ne 0 -or
+        $deploymentPolicies.Count -ne 1 -or
+        $deploymentPolicies[0] -ne 'branch:master') {
+        throw 'GitHub production deployments must be restricted exactly to master'
+    }
+
     Write-Output 'Configured GitHub production environment secrets:'
     $expectedNames | Sort-Object | ForEach-Object { Write-Output $_ }
+    Write-Output 'Restricted GitHub production deployments to branch:master'
 } finally {
     $base64 = $null
+    $environmentPolicy = $null
     foreach ($name in $requiredRecovery) {
         $recovery[$name] = $null
     }

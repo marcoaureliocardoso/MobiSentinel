@@ -9,6 +9,9 @@ $temporaryRoot = [IO.Path]::GetFullPath([IO.Path]::GetTempPath())
 $temporary = Join-Path $temporaryRoot (
     'MobiSentinel-signing-test-' + [guid]::NewGuid().ToString('N')
 )
+$repositorySandbox = Join-Path $temporaryRoot (
+    'MobiSentinel-signing-repository-test-' + [guid]::NewGuid().ToString('N')
+)
 
 function Read-RecoveryValues {
     param([Parameter(Mandatory)][string]$Path)
@@ -28,6 +31,19 @@ function Read-RecoveryValues {
 }
 
 try {
+    $sandboxScripts = Join-Path $repositorySandbox 'scripts'
+    New-Item -ItemType Directory -Path $sandboxScripts -Force | Out-Null
+    $sandboxGenerator = Join-Path $sandboxScripts 'create-production-signing.ps1'
+    Copy-Item -LiteralPath $generator -Destination $sandboxGenerator
+    $rootOutput = & pwsh -NoProfile -File $sandboxGenerator `
+        -OutputDirectory $repositorySandbox 2>&1
+    if ($LASTEXITCODE -eq 0) {
+        throw 'Generator accepted the repository root as its output directory'
+    }
+    if (($rootOutput -join [Environment]::NewLine) -notmatch 'outside the repository') {
+        throw "Unexpected repository-root rejection: $($rootOutput -join [Environment]::NewLine)"
+    }
+
     $output = & pwsh -NoProfile -File $generator -OutputDirectory $temporary 2>&1
     if ($LASTEXITCODE -ne 0) {
         throw "Generator failed: $($output -join [Environment]::NewLine)"
@@ -114,5 +130,15 @@ try {
     }
     if (Test-Path -LiteralPath $resolvedTemporary) {
         Remove-Item -LiteralPath $resolvedTemporary -Recurse -Force
+    }
+    $resolvedRepositorySandbox = [IO.Path]::GetFullPath($repositorySandbox)
+    if (-not $resolvedRepositorySandbox.StartsWith(
+        $temporaryRoot,
+        [StringComparison]::OrdinalIgnoreCase
+    )) {
+        throw 'Refusing to clean a repository sandbox outside the system temp root'
+    }
+    if (Test-Path -LiteralPath $resolvedRepositorySandbox) {
+        Remove-Item -LiteralPath $resolvedRepositorySandbox -Recurse -Force
     }
 }

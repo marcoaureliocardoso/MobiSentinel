@@ -6,6 +6,8 @@ $ErrorActionPreference = 'Stop'
 
 $workflowPath = Join-Path $PSScriptRoot '..\..\.github\workflows\release-please.yml'
 $workflow = Get-Content -LiteralPath $workflowPath -Raw
+$ciPath = Join-Path $PSScriptRoot '..\..\.github\workflows\ci.yml'
+$ci = Get-Content -LiteralPath $ciPath -Raw
 
 $requiredPatterns = [ordered]@{
     'protected production environment' = '(?m)^\s{4}environment:\s*production\s*$'
@@ -14,6 +16,9 @@ $requiredPatterns = [ordered]@{
     'key alias secret' = 'secrets\.ANDROID_SIGNING_KEY_ALIAS'
     'key password secret' = 'secrets\.ANDROID_SIGNING_KEY_PASSWORD'
     'release build' = '\bassembleRelease\b'
+    'repeated debug unit tests' = '\btestDebugUnitTest\b'
+    'repeated debug lint' = '\blintDebug\b'
+    'repeated debug build' = '\bassembleDebug\b'
     'release APK input' = 'outputs/apk/release/app-release\.apk'
     'pinned certificate verification' = '-CertificateSha256Path\s+signing/release-certificate\.sha256'
     'Android 35 emulator' = '(?m)^\s+api-level:\s*35\s*$'
@@ -24,6 +29,10 @@ $requiredPatterns = [ordered]@{
     'always cleanup signing key' = '(?ms)- name: Remove signing key.*?if:\s*\$\{\{\s*always\(\)\s*\}\}'
     'final production promotion' = 'gh release edit "\$TAG" --prerelease=false --latest'
     'repository context for GitHub CLI' = 'GH_REPO:\s*\$\{\{\s*github\.repository\s*\}\}'
+}
+
+if ($ci -notmatch 'scripts/tests/release-workflow-test\.ps1') {
+    throw 'CI does not execute the release workflow policy test'
 }
 
 foreach ($entry in $requiredPatterns.GetEnumerator()) {

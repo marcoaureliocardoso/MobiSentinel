@@ -50,6 +50,7 @@ O CI executa:
 .\gradlew.bat testDebugUnitTest testReleaseUnitTest lintDebug lintRelease assembleDebug
 .\scripts\tests\verify-release-apk-test.ps1
 .\scripts\tests\release-workflow-test.ps1
+.\scripts\tests\privacy-manifest-test.ps1
 .\gradlew.bat connectedDebugAndroidTest
 ```
 
