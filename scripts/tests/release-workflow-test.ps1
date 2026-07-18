@@ -64,4 +64,19 @@ if ($assetCheck.Value -notmatch '\$\{#assets\[@\]\}\s*-ne\s*2') {
     throw 'Production promotion must require exactly two release assets'
 }
 
+$signingCleanup = [regex]::Match(
+    $workflow,
+    '(?ms)- name: Remove signing key.*?(?=\n\s{6}- name:|\z)'
+)
+if (-not $signingCleanup.Success) {
+    throw 'Release workflow must contain a signing key cleanup step'
+}
+if ($signingCleanup.Value -notmatch
+    "Join-Path\s+\`$env:RUNNER_TEMP\s+'mobisentinel-production\.p12'") {
+    throw 'Signing key cleanup must derive the keystore path independently from RUNNER_TEMP'
+}
+if ($signingCleanup.Value -notmatch 'Remove-Item\s+-LiteralPath\s+\$keyPath') {
+    throw 'Signing key cleanup must remove the independently derived path'
+}
+
 Write-Output 'Release workflow policy test passed'

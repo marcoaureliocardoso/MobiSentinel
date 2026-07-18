@@ -213,9 +213,9 @@ jobs:
         if: ${{ always() }}
         shell: pwsh
         run: |
-          if (-not [string]::IsNullOrWhiteSpace($env:ANDROID_SIGNING_STORE_FILE) -and
-              (Test-Path -LiteralPath $env:ANDROID_SIGNING_STORE_FILE)) {
-            Remove-Item -LiteralPath $env:ANDROID_SIGNING_STORE_FILE -Force
+          $keyPath = Join-Path $env:RUNNER_TEMP 'mobisentinel-production.p12'
+          if (Test-Path -LiteralPath $keyPath) {
+            Remove-Item -LiteralPath $keyPath -Force
           }
 
       - name: Store verified workflow artifact
