@@ -13,5 +13,11 @@ if ($manifest -notmatch 'android:allowBackup="false"') {
 if ($manifest -match 'android\.permission\.INTERNET') {
     throw 'The privacy model forbids declaring INTERNET permission'
 }
+if ($manifest -notmatch 'android\.permission\.VIBRATE') {
+    throw 'Haptic alerts require declaring VIBRATE permission'
+}
+if ($manifest -match 'android\.permission\.ACCESS_NOTIFICATION_POLICY') {
+    throw 'The privacy model forbids declaring ACCESS_NOTIFICATION_POLICY permission'
+}
 
 Write-Output 'Privacy manifest policy test passed'
