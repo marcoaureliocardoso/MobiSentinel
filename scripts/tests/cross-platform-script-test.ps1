@@ -19,4 +19,12 @@ foreach ($relativePath in $paths) {
     }
 }
 
+$verifierTestPath = Join-Path $repositoryRoot 'scripts/tests/verify-release-apk-test.ps1'
+$verifierTest = Get-Content -LiteralPath $verifierTestPath -Raw
+if ($verifierTest -notmatch '\$IsWindows' -or
+    $verifierTest -notmatch "'gradlew'" -or
+    $verifierTest -notmatch "'gradlew\.bat'") {
+    throw 'APK verifier test must select the platform-specific Gradle wrapper'
+}
+
 Write-Output 'Cross-platform PowerShell command resolution test passed'

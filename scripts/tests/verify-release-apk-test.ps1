@@ -8,7 +8,8 @@ $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $verifier = Join-Path $PSScriptRoot '..\verify-release-apk.ps1'
 $generator = Join-Path $PSScriptRoot '..\create-production-signing.ps1'
 $buildFile = Join-Path $repositoryRoot 'app\build.gradle.kts'
-$gradle = Join-Path $repositoryRoot 'gradlew.bat'
+$gradleName = if ($IsWindows) { 'gradlew.bat' } else { 'gradlew' }
+$gradle = Join-Path $repositoryRoot $gradleName
 $temporaryRoot = [IO.Path]::GetFullPath([IO.Path]::GetTempPath())
 $temporary = Join-Path $temporaryRoot (
     'MobiSentinel-verifier-test-' + [guid]::NewGuid().ToString('N')
