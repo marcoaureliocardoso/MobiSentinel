@@ -37,13 +37,20 @@ class MainViewModelTest {
         val settings = MonitoringSettings(monitoringEnabled = true, lossDelaySeconds = 9)
         val repository = FakeSettingsRepository(settings)
         val speech = MutableStateFlow(SpeechAvailability.READY)
-        val viewModel = MainViewModel(store, repository, speech)
+        val viewModel = MainViewModel(store, repository, speech, hapticAvailable = true)
+
+        assertEquals(true, viewModel.uiState.value.hapticAvailable)
         collectState(viewModel)
 
         advanceUntilIdle()
 
         assertEquals(
-            MainUiState(store.snapshot.value, settings, SpeechAvailability.READY),
+            MainUiState(
+                store.snapshot.value,
+                settings,
+                SpeechAvailability.READY,
+                hapticAvailable = true,
+            ),
             viewModel.uiState.value,
         )
     }
@@ -82,6 +89,61 @@ class MainViewModelTest {
         advanceUntilIdle()
 
         assertEquals(false, fixture.viewModel.uiState.value.settings.narrateCellular)
+    }
+
+    @Test
+    fun hapticAvailabilityRemainsInUiStateAfterFlowsCombine() = viewModelTest {
+        val fixture = Fixture(hapticAvailable = true)
+        collectState(fixture.viewModel)
+
+        advanceUntilIdle()
+
+        assertEquals(true, fixture.viewModel.uiState.value.hapticAvailable)
+    }
+
+    @Test
+    fun vibrateWifiTogglePersistsAndUpdatesUi() = viewModelTest {
+        val fixture = Fixture()
+        collectState(fixture.viewModel)
+
+        fixture.viewModel.setVibrateWifi(true)
+        advanceUntilIdle()
+
+        assertEquals(true, fixture.viewModel.uiState.value.settings.vibrateWifi)
+    }
+
+    @Test
+    fun vibrateCellularTogglePersistsAndUpdatesUi() = viewModelTest {
+        val fixture = Fixture()
+        collectState(fixture.viewModel)
+
+        fixture.viewModel.setVibrateCellular(true)
+        advanceUntilIdle()
+
+        assertEquals(true, fixture.viewModel.uiState.value.settings.vibrateCellular)
+    }
+
+    @Test
+    fun quietHoursTogglePersistsAndUpdatesUi() = viewModelTest {
+        val fixture = Fixture()
+        collectState(fixture.viewModel)
+
+        fixture.viewModel.setQuietHoursEnabled(true)
+        advanceUntilIdle()
+
+        assertEquals(true, fixture.viewModel.uiState.value.settings.quietHoursEnabled)
+    }
+
+    @Test
+    fun quietHoursPersistAtomicallyAndUpdateUi() = viewModelTest {
+        val fixture = Fixture()
+        collectState(fixture.viewModel)
+
+        fixture.viewModel.setQuietHours(8 * 60, 17 * 60)
+        advanceUntilIdle()
+
+        assertEquals(8 * 60, fixture.viewModel.uiState.value.settings.quietStartMinuteOfDay)
+        assertEquals(17 * 60, fixture.viewModel.uiState.value.settings.quietEndMinuteOfDay)
     }
 
     @Test
@@ -136,11 +198,11 @@ class MainViewModelTest {
         }
     }
 
-    private class Fixture {
+    private class Fixture(hapticAvailable: Boolean = false) {
         val store = MonitoringStateStore()
         val repository = FakeSettingsRepository(MonitoringSettings())
         val speech = MutableStateFlow(SpeechAvailability.INITIALIZING)
-        val viewModel = MainViewModel(store, repository, speech)
+        val viewModel = MainViewModel(store, repository, speech, hapticAvailable)
     }
 
     private class FakeSettingsRepository(initial: MonitoringSettings) : SettingsRepository {
