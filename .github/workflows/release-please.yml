@@ -51,34 +51,91 @@ jobs:
           gh workflow run ci.yml --ref "$release_branch"
 
   prepare-release-notes:
-    name: Add release safety warning
+    name: Mark release as staged
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - name: Add non-production warning to release notes
+      - name: Add automated validation warning
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           TAG: ${{ needs.release-please.outputs.tag_name }}
         run: |
-          release_body="$(gh release view "$TAG" --json body --jq .body)"
+          gh release view "$TAG" --json body --jq .body > original-notes.md
+          awk '
+            /<!-- mobisentinel-staging-warning-start -->/ { skip=1; next }
+            /<!-- mobisentinel-staging-warning-end -->/ { skip=0; next }
+            !skip { print }
+          ' original-notes.md > cleaned-notes.md
           {
-            printf '%s\n\n' '## ⚠️ APK de depuração — não destinado à produção'
-            printf '%s\n' 'O APK anexado usa assinatura debug e não deve ser publicado em loja ou tratado como build de produção.'
-            printf '%s\n' 'Os gates físicos descritos em docs/testing/manual-test-matrix.md permanecem obrigatórios.'
-            printf '%s\n' 'Confira a integridade do arquivo usando o SHA-256 anexado.'
-            printf '\n%s\n' "$release_body"
+            printf '%s\n' '<!-- mobisentinel-staging-warning-start -->'
+            printf '%s\n\n' '## Release em validação automatizada'
+            printf '%s\n' 'Ainda não instale este APK. A publicação só será promovida após testes, assinatura e verificação dos artefatos.'
+            printf '%s\n\n' '<!-- mobisentinel-staging-warning-end -->'
+            cat cleaned-notes.md
           } > release-notes.md
           gh release edit "$TAG" --prerelease --notes-file release-notes.md
 
-  build-release-artifacts:
-    name: Build verified debug APK
+  release-emulator:
+    name: Validate release on Android 35
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created == 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Check out released tag
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ needs.release-please.outputs.tag_name }}
+
+      - name: Set up Java 17
+        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x gradlew
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run instrumented tests on Android 35
+        uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # v2.37.0
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_7_pro
+          disable-animations: true
+          emulator-options: >-
+            -no-window
+            -gpu swiftshader_indirect
+            -noaudio
+            -no-boot-anim
+            -camera-back none
+          script: ./gradlew connectedDebugAndroidTest
+
+  build-release-artifacts:
+    name: Build signed production APK
+    needs:
+      - release-please
+      - release-emulator
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    runs-on: ubuntu-latest
+    environment: production
     permissions:
       contents: read
     steps:
@@ -102,23 +159,43 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x gradlew
 
-      - name: Test version build logic
-        run: ./gradlew -p buildSrc test
+      - name: Reconstruct signing key in runner temp
+        shell: pwsh
+        env:
+          ANDROID_SIGNING_KEY_BASE64: ${{ secrets.ANDROID_SIGNING_KEY_BASE64 }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:ANDROID_SIGNING_KEY_BASE64)) {
+            throw 'ANDROID_SIGNING_KEY_BASE64 is empty'
+          }
+          $keyPath = Join-Path $env:RUNNER_TEMP 'mobisentinel-production.p12'
+          $bytes = [Convert]::FromBase64String($env:ANDROID_SIGNING_KEY_BASE64)
+          [IO.File]::WriteAllBytes($keyPath, $bytes)
+          [Array]::Clear($bytes, 0, $bytes.Length)
+          "ANDROID_SIGNING_STORE_FILE=$keyPath" >> $env:GITHUB_ENV
 
-      - name: Repeat release gates
-        run: ./gradlew testDebugUnitTest lintDebug assembleDebug
+      - name: Build signed release APK
+        env:
+          ANDROID_SIGNING_STORE_PASSWORD: ${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}
+          ANDROID_SIGNING_KEY_ALIAS: ${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}
+          ANDROID_SIGNING_KEY_PASSWORD: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
+        run: |
+          ./gradlew -p buildSrc test
+          ./gradlew testReleaseUnitTest lintRelease assembleRelease
 
-      - name: Verify and package debug APK
+      - name: Verify and package signed APK
         shell: pwsh
         env:
           TAG: ${{ needs.release-please.outputs.tag_name }}
           VERSION: ${{ needs.release-please.outputs.version }}
         run: |
-          $source = 'app/build/outputs/apk/debug/app-debug.apk'
-          pwsh -File scripts/verify-release-apk.ps1 -Tag $env:TAG -ApkPath $source
+          $source = 'app/build/outputs/apk/release/app-release.apk'
+          pwsh -File scripts/verify-release-apk.ps1 `
+            -Tag $env:TAG `
+            -ApkPath $source `
+            -CertificateSha256Path signing/release-certificate.sha256
 
           New-Item -ItemType Directory -Path dist -Force | Out-Null
-          $name = "MobiSentinel-$env:VERSION-debug.apk"
+          $name = "MobiSentinel-$env:VERSION.apk"
           Copy-Item -LiteralPath $source -Destination (Join-Path dist $name)
 
           Push-Location dist
@@ -126,16 +203,27 @@ jobs:
           "$hash  $name" | Set-Content -LiteralPath "$name.sha256" -Encoding ascii
           Pop-Location
 
+      - name: Remove signing key
+        if: ${{ always() }}
+        shell: pwsh
+        run: |
+          if (-not [string]::IsNullOrWhiteSpace($env:ANDROID_SIGNING_STORE_FILE) -and
+              (Test-Path -LiteralPath $env:ANDROID_SIGNING_STORE_FILE)) {
+            Remove-Item -LiteralPath $env:ANDROID_SIGNING_STORE_FILE -Force
+          }
+
       - name: Store verified workflow artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: mobisentinel-release-${{ needs.release-please.outputs.version }}
-          path: dist/*
+          path: |
+            dist/MobiSentinel-${{ needs.release-please.outputs.version }}.apk
+            dist/MobiSentinel-${{ needs.release-please.outputs.version }}.apk.sha256
           if-no-files-found: error
           retention-days: 7
 
   publish-release-artifacts:
-    name: Attach verified artifacts
+    name: Attach verified production artifacts
     needs:
       - release-please
       - prepare-release-notes
@@ -157,8 +245,53 @@ jobs:
           TAG: ${{ needs.release-please.outputs.tag_name }}
           VERSION: ${{ needs.release-please.outputs.version }}
         run: |
-          apk="dist/MobiSentinel-$VERSION-debug.apk"
+          apk="dist/MobiSentinel-$VERSION.apk"
           checksum="$apk.sha256"
           test -f "$apk"
           test -f "$checksum"
+          test "$(find dist -maxdepth 1 -type f | wc -l)" -eq 2
           gh release upload "$TAG" "$apk" "$checksum" --clobber
+
+  promote-release:
+    name: Promote verified production release
+    needs:
+      - release-please
+      - publish-release-artifacts
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Verify exact release assets and promote
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ needs.release-please.outputs.tag_name }}
+          VERSION: ${{ needs.release-please.outputs.version }}
+        run: |
+          mapfile -t assets < <(
+            gh release view "$TAG" --json assets --jq '.assets[].name' | sort
+          )
+          if [[ ${#assets[@]} -ne 2 ]]; then
+            printf 'Expected exactly two assets, found %s: %s\n' \
+              "${#assets[@]}" "${assets[*]}" >&2
+            exit 1
+          fi
+          if [[ "${assets[0]}" != "MobiSentinel-$VERSION.apk" ||
+                "${assets[1]}" != "MobiSentinel-$VERSION.apk.sha256" ]]; then
+            printf 'Unexpected release assets: %s\n' "${assets[*]}" >&2
+            exit 1
+          fi
+
+          gh release view "$TAG" --json body --jq .body > staged-notes.md
+          awk '
+            /<!-- mobisentinel-staging-warning-start -->/ { skip=1; next }
+            /<!-- mobisentinel-staging-warning-end -->/ { skip=0; next }
+            !skip { print }
+          ' staged-notes.md > cleaned-notes.md
+          {
+            printf '%s\n\n' '## APK de produção assinada'
+            printf '%s\n' 'O APK foi assinado, verificado e aprovado pelos gates automatizados.'
+            printf '%s\n\n' 'Valide o download usando o arquivo SHA-256 anexado.'
+            cat cleaned-notes.md
+          } > release-notes.md
+          gh release edit "$TAG" --prerelease=false --latest --notes-file release-notes.md
