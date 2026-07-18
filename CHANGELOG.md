@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.0.0](https://github.com/marcoaureliocardoso/MobiSentinel/compare/v0.1.1...v1.0.0) (2026-07-18)
+
+
+### ⚠ BREAKING CHANGES
+
+* installs now use br.com.marcocardoso.mobisentinel and do not update com.mobisentinel.app.
+
+### Features
+
+* adopt permanent Android application identity ([e655972](https://github.com/marcoaureliocardoso/MobiSentinel/commit/e655972a367abbe40847e45c181c7e40e6a5209f))
+
+
+### Bug Fixes
+
+* close production release validation gaps ([70a0351](https://github.com/marcoaureliocardoso/MobiSentinel/commit/70a03518a8408c8739d67f48d1b4024ed61cbf90))
+* guarantee signing key cleanup ([fec9b6a](https://github.com/marcoaureliocardoso/MobiSentinel/commit/fec9b6ac3f4acc56bde84cdf5a2d71b091ad9c92))
+* protect production release credentials ([e21d7bb](https://github.com/marcoaureliocardoso/MobiSentinel/commit/e21d7bb60a1633160b31c831b4dfa72e2161ea94))
+* resolve signing tools cross-platform ([939af3d](https://github.com/marcoaureliocardoso/MobiSentinel/commit/939af3db1c9f57d042595786390ad6a919c0555f))
+* select Gradle wrapper cross-platform ([7d717f7](https://github.com/marcoaureliocardoso/MobiSentinel/commit/7d717f792625f814874e5f6bff05dc6c5d2b0cbe))
+
 ## [0.1.1](https://github.com/marcoaureliocardoso/MobiSentinel/compare/v0.1.0...v0.1.1) (2026-07-17)
 
 

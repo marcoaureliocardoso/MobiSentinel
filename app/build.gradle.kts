@@ -7,7 +7,7 @@ plugins {
     alias(libs.plugins.compose.compiler)
 }
 
-val appVersion = AppVersion.parse("0.1.1") // x-release-please-version
+val appVersion = AppVersion.parse("1.0.0") // x-release-please-version
 val releaseSigning = ReleaseSigningEnvironment.resolve(
     environment = System.getenv(),
     taskNames = gradle.startParameter.taskNames,
