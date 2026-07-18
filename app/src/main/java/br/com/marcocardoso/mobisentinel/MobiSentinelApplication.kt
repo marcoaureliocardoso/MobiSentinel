@@ -5,6 +5,7 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.telephony.TelephonyManager
 import androidx.datastore.preferences.preferencesDataStore
+import br.com.marcocardoso.mobisentinel.haptics.AndroidHapticController
 import br.com.marcocardoso.mobisentinel.monitoring.MonitoringEngine
 import br.com.marcocardoso.mobisentinel.monitoring.MonitoringStateStore
 import br.com.marcocardoso.mobisentinel.monitoring.network.AndroidCellularNetworkRequester
@@ -27,6 +28,10 @@ class MobiSentinelApplication : Application() {
     }
     val monitoringStateStore = MonitoringStateStore()
 
+    val hapticAvailable: Boolean by lazy {
+        AndroidHapticController.isAvailable(this)
+    }
+
     private val mutableSpeechAvailability = MutableStateFlow(SpeechAvailability.UNAVAILABLE)
     val speechAvailability: StateFlow<SpeechAvailability> = mutableSpeechAvailability.asStateFlow()
 
@@ -37,6 +42,7 @@ class MobiSentinelApplication : Application() {
             AndroidCellularNetworkRequester(connectivityManager),
         )
         val speechController = AndroidSpeechController(this, mutableSpeechAvailability)
+        val hapticController = AndroidHapticController(this, scope)
         return MonitoringEngine(
             parentScope = scope,
             networkObserver = AndroidNetworkObserver(
@@ -48,6 +54,7 @@ class MobiSentinelApplication : Application() {
             ),
             settingsRepository = settingsRepository,
             speechController = speechController,
+            hapticController = hapticController,
             stateStore = monitoringStateStore,
         )
     }
