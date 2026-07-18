@@ -30,8 +30,18 @@ foreach ($path in $outputs) {
     }
 }
 
-$keytool = (Get-Command keytool, keytool.exe -ErrorAction Stop |
-    Select-Object -First 1).Source
+$keytool = $null
+foreach ($name in @('keytool', 'keytool.exe')) {
+    $candidate = Get-Command $name -ErrorAction SilentlyContinue |
+        Select-Object -First 1
+    if ($candidate) {
+        $keytool = $candidate.Source
+        break
+    }
+}
+if (-not $keytool) {
+    throw 'keytool was not found on PATH'
+}
 $passwordBytes = [Security.Cryptography.RandomNumberGenerator]::GetBytes(48)
 $password = [Convert]::ToBase64String($passwordBytes).
     TrimEnd('=').

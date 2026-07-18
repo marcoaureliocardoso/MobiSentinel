@@ -51,7 +51,17 @@ foreach ($path in @($keystore, $recoveryPath)) {
     }
 }
 
-Get-Command gh, gh.exe -ErrorAction Stop | Select-Object -First 1 | Out-Null
+$ghCommand = $null
+foreach ($name in @('gh', 'gh.exe')) {
+    $ghCommand = Get-Command $name -ErrorAction SilentlyContinue |
+        Select-Object -First 1
+    if ($ghCommand) {
+        break
+    }
+}
+if (-not $ghCommand) {
+    throw 'GitHub CLI was not found on PATH'
+}
 $recovery = Read-RecoveryValues -Path $recoveryPath
 $requiredRecovery = @(
     'ANDROID_SIGNING_STORE_PASSWORD',

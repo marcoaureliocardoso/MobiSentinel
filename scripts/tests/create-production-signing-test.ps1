@@ -93,8 +93,18 @@ try {
         throw 'Fingerprint must contain 64 lowercase hexadecimal characters'
     }
 
-    $keytool = (Get-Command keytool, keytool.exe -ErrorAction Stop |
-        Select-Object -First 1).Source
+    $keytool = $null
+    foreach ($name in @('keytool', 'keytool.exe')) {
+        $candidate = Get-Command $name -ErrorAction SilentlyContinue |
+            Select-Object -First 1
+        if ($candidate) {
+            $keytool = $candidate.Source
+            break
+        }
+    }
+    if (-not $keytool) {
+        throw 'keytool was not found on PATH'
+    }
     $keystore = Join-Path $temporary 'mobisentinel-production.p12'
     $certificate = Join-Path $temporary 'test-certificate.der'
     $env:MOBISENTINEL_TEST_STORE_PASSWORD = $password

@@ -63,6 +63,10 @@ jobs:
         shell: pwsh
         run: ./scripts/tests/privacy-manifest-test.ps1
 
+      - name: Test cross-platform PowerShell policy
+        shell: pwsh
+        run: ./scripts/tests/cross-platform-script-test.ps1
+
   emulator:
     name: Android 35 emulator
     needs: validate
