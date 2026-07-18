@@ -15,53 +15,76 @@ internal class DefaultHapticController(
     parentScope: CoroutineScope,
     private val device: HapticDevice,
 ) : HapticController {
+    private val lock = Any()
     private val controllerJob = SupervisorJob(parentScope.coroutineContext[Job])
     private val controllerScope = CoroutineScope(parentScope.coroutineContext + controllerJob)
     private var manualSequence: Job? = null
+    private var generation = 0L
     private var closed = false
 
     override val isAvailable: Boolean
-        get() = bestEffort { device.isAvailable } ?: false
+        get() = synchronized(lock) { isAvailableLocked() }
 
     override fun play(pattern: HapticPattern) {
-        if (closed) return
+        synchronized(lock) {
+            if (closed) return
 
-        manualSequence?.cancel()
-        manualSequence = null
-        cancelDevice()
-        playIfAvailable(pattern)
+            generation += 1
+            manualSequence?.cancel()
+            manualSequence = null
+            cancelDeviceLocked()
+            playIfAvailableLocked(pattern)
+        }
     }
 
     override fun testPatterns() {
-        if (closed) return
+        synchronized(lock) {
+            if (closed) return
 
-        manualSequence?.cancel()
-        cancelDevice()
-        playIfAvailable(HapticPattern.LOSS)
-        manualSequence = controllerScope.launch {
-            delay(LOSS_DURATION_MS + TEST_GAP_MS)
-            if (!closed) playIfAvailable(HapticPattern.RECOVERY)
+            val sequenceGeneration = generation + 1
+            generation = sequenceGeneration
+            manualSequence?.cancel()
+            cancelDeviceLocked()
+            playIfAvailableLocked(HapticPattern.LOSS)
+            manualSequence = controllerScope.launch {
+                delay(LOSS_DURATION_MS + TEST_GAP_MS)
+                recoverIfCurrent(sequenceGeneration)
+            }
         }
     }
 
     override fun close() {
-        if (closed) return
+        synchronized(lock) {
+            if (closed) return
 
-        closed = true
-        manualSequence?.cancel()
-        manualSequence = null
-        controllerJob.cancel()
-        cancelDevice()
+            closed = true
+            generation += 1
+            manualSequence?.cancel()
+            manualSequence = null
+            controllerJob.cancel()
+            cancelDeviceLocked()
+        }
     }
 
-    private fun playIfAvailable(pattern: HapticPattern) {
-        if (!isAvailable) return
+    private fun recoverIfCurrent(sequenceGeneration: Long) {
+        synchronized(lock) {
+            if (closed || sequenceGeneration != generation) return
+
+            playIfAvailableLocked(HapticPattern.RECOVERY)
+            manualSequence = null
+        }
+    }
+
+    private fun playIfAvailableLocked(pattern: HapticPattern) {
+        if (!isAvailableLocked()) return
         bestEffort { device.play(pattern) }
     }
 
-    private fun cancelDevice() {
+    private fun cancelDeviceLocked() {
         bestEffort { device.cancel() }
     }
+
+    private fun isAvailableLocked(): Boolean = bestEffort { device.isAvailable } ?: false
 
     private inline fun <T> bestEffort(block: () -> T): T? = try {
         block()
