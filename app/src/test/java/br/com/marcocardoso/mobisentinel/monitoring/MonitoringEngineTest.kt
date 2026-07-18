@@ -12,6 +12,7 @@ import br.com.marcocardoso.mobisentinel.preferences.SettingsRepository
 import br.com.marcocardoso.mobisentinel.speech.Announcement
 import br.com.marcocardoso.mobisentinel.speech.SpeechAvailability
 import br.com.marcocardoso.mobisentinel.speech.SpeechController
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -24,6 +25,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -305,13 +307,61 @@ class MonitoringEngineTest {
     fun closeFailuresDoNotPreventRemainingShutdownSteps() = runTest {
         val fixture = Fixture(
             backgroundScope,
-            speech = RecordingSpeechController(failClose = true),
+            speech = RecordingSpeechController(closeFailure = IllegalStateException("speech close failed")),
         )
         fixture.engine.start()
         runCurrent()
 
         fixture.engine.stop()
 
+        assertEquals(1, fixture.speech.closeCount)
+        assertEquals(1, fixture.haptics.closeCount)
+        assertEquals(1, fixture.network.stopCount)
+        assertFalse(fixture.store.snapshot.value.serviceActive)
+    }
+
+    @Test
+    fun cancellationDuringSpeechCloseFinishesShutdownAndPropagates() = runTest {
+        val cancellation = CancellationException("speech close cancelled")
+        val fixture = Fixture(
+            backgroundScope,
+            speech = RecordingSpeechController(closeFailure = cancellation),
+        )
+        fixture.engine.start()
+        runCurrent()
+
+        val thrown = try {
+            fixture.engine.stop()
+            null
+        } catch (exception: Throwable) {
+            exception
+        }
+
+        assertSame(cancellation, thrown)
+        assertEquals(1, fixture.speech.closeCount)
+        assertEquals(1, fixture.haptics.closeCount)
+        assertEquals(1, fixture.network.stopCount)
+        assertFalse(fixture.store.snapshot.value.serviceActive)
+    }
+
+    @Test
+    fun errorDuringHapticCloseFinishesShutdownAndPropagates() = runTest {
+        val error = AssertionError("haptics close failed")
+        val fixture = Fixture(
+            backgroundScope,
+            haptics = RecordingHapticController(closeFailure = error),
+        )
+        fixture.engine.start()
+        runCurrent()
+
+        val thrown = try {
+            fixture.engine.stop()
+            null
+        } catch (exception: Throwable) {
+            exception
+        }
+
+        assertSame(error, thrown)
         assertEquals(1, fixture.speech.closeCount)
         assertEquals(1, fixture.haptics.closeCount)
         assertEquals(1, fixture.network.stopCount)
@@ -446,7 +496,7 @@ class MonitoringEngineTest {
 
     private class RecordingSpeechController(
         private val failAnnounce: Boolean = false,
-        private val failClose: Boolean = false,
+        private val closeFailure: Throwable? = null,
     ) : SpeechController {
         override val availability: StateFlow<SpeechAvailability> =
             MutableStateFlow(SpeechAvailability.READY)
@@ -465,13 +515,13 @@ class MonitoringEngineTest {
 
         override fun close() {
             closeCount++
-            if (failClose) throw IllegalStateException("speech close failed")
+            closeFailure?.let { throw it }
         }
     }
 
     private class RecordingHapticController(
         private val failPlay: Boolean = false,
-        private val failClose: Boolean = false,
+        private val closeFailure: Throwable? = null,
     ) : HapticController {
         override val isAvailable: Boolean = true
         val playedPatterns = mutableListOf<HapticPattern>()
@@ -489,7 +539,7 @@ class MonitoringEngineTest {
 
         override fun close() {
             closeCount++
-            if (failClose) throw IllegalStateException("haptics close failed")
+            closeFailure?.let { throw it }
         }
     }
 

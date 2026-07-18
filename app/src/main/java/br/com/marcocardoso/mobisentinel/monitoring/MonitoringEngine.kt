@@ -90,10 +90,19 @@ class MonitoringEngine(
             cellularCoordinator?.close()
             wifiCoordinator = null
             cellularCoordinator = null
-            bestEffort { speechController.close() }
-            bestEffort { hapticController.close() }
-            networkObserver.stop()
-            stateStore.setServiceActive(false)
+            try {
+                bestEffort { speechController.close() }
+            } finally {
+                try {
+                    bestEffort { hapticController.close() }
+                } finally {
+                    try {
+                        networkObserver.stop()
+                    } finally {
+                        stateStore.setServiceActive(false)
+                    }
+                }
+            }
         }
     }
 
