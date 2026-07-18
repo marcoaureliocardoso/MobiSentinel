@@ -249,6 +249,25 @@ class MonitoringEngineTest {
             mutable.value = mutable.value.copy(narrateCellular = enabled)
         }
 
+        override suspend fun setVibrateWifi(enabled: Boolean) {
+            mutable.value = mutable.value.copy(vibrateWifi = enabled)
+        }
+
+        override suspend fun setVibrateCellular(enabled: Boolean) {
+            mutable.value = mutable.value.copy(vibrateCellular = enabled)
+        }
+
+        override suspend fun setQuietHoursEnabled(enabled: Boolean) {
+            mutable.value = mutable.value.copy(quietHoursEnabled = enabled)
+        }
+
+        override suspend fun setQuietHours(startMinuteOfDay: Int, endMinuteOfDay: Int) {
+            mutable.value = mutable.value.copy(
+                quietStartMinuteOfDay = startMinuteOfDay,
+                quietEndMinuteOfDay = endMinuteOfDay,
+            )
+        }
+
         override suspend fun setLossDelaySeconds(seconds: Int) {
             mutable.value = mutable.value.copy(lossDelaySeconds = seconds)
         }

@@ -159,6 +159,25 @@ class MainViewModelTest {
             mutableSettings.value = mutableSettings.value.copy(narrateCellular = enabled)
         }
 
+        override suspend fun setVibrateWifi(enabled: Boolean) {
+            mutableSettings.value = mutableSettings.value.copy(vibrateWifi = enabled)
+        }
+
+        override suspend fun setVibrateCellular(enabled: Boolean) {
+            mutableSettings.value = mutableSettings.value.copy(vibrateCellular = enabled)
+        }
+
+        override suspend fun setQuietHoursEnabled(enabled: Boolean) {
+            mutableSettings.value = mutableSettings.value.copy(quietHoursEnabled = enabled)
+        }
+
+        override suspend fun setQuietHours(startMinuteOfDay: Int, endMinuteOfDay: Int) {
+            mutableSettings.value = mutableSettings.value.copy(
+                quietStartMinuteOfDay = startMinuteOfDay,
+                quietEndMinuteOfDay = endMinuteOfDay,
+            )
+        }
+
         override suspend fun setLossDelaySeconds(seconds: Int) {
             mutableSettings.value = mutableSettings.value.copy(lossDelaySeconds = seconds)
         }
