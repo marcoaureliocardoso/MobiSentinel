@@ -4,7 +4,7 @@ Data da execução física mais recente: 17 de julho de 2026
 
 Ambiente físico de referência: Moto G54 5G, Android 15/API 35, dois SIMs ativos, operadoras exibidas pelo sistema NuCel e Vivo, build debug anterior à identidade definitiva de produção.
 
-Ambiente automatizado obrigatório: emulador Android/API 35 com Google APIs no GitHub Actions.
+Ambiente automatizado obrigatório: `Codex_API_35`, Android 15/API 35, serial local `emulator-5554`; o GitHub Actions usa um emulador Android 35 equivalente.
 
 Nenhum número de telefone, ICCID, IMSI, endereço IP, BSSID, MAC ou serial do aparelho é registrado neste documento.
 
@@ -16,6 +16,25 @@ Nenhum número de telefone, ICCID, IMSI, endereço IP, BSSID, MAC ou serial do a
 - **GATE AUTOMATIZADO:** precisa passar no GitHub Actions antes da promoção de uma release.
 
 Teste em dispositivo físico não é obrigatório para a release atual. A evidência do Moto permanece como referência de comportamento real.
+
+## Evidência automatizada de alertas e horário silencioso
+
+Execução local em 18 de julho de 2026: testes JVM debug/release, lint debug/release, build debug, políticas de manifesto/release/scripts e suíte instrumentada completa passaram. No `Codex_API_35`, a suíte executou 31/31 casos, sem falhas, erros ou casos ignorados.
+
+| Área | Resultado | Evidência coberta |
+| --- | --- | --- |
+| Política pura | PASSOU | Testes JVM debug/release cobrem defaults, faixa diurna, faixa que cruza a meia-noite, início inclusivo, fim exclusivo, limites válidos e transições entre `CONNECTED` e estados sem internet, incluindo `CONNECTED_NO_INTERNET`. |
+| Preferences DataStore | PASSOU | Testes JVM e `DataStoreSettingsRepositoryTest` 10/10 cobrem persistência dos seletores hápticos e do horário silencioso, atualização atômica da faixa e normalização conjunta dos dois endpoints quando qualquer valor persistido é inválido ou quando são iguais. |
+| Controlador háptico | PASSOU | Testes JVM debug/release cobrem padrões de perda e recuperação, cancelamento, substituição do efeito em execução, falhas do serviço/hardware e chamadas concorrentes. |
+| Engine de monitoramento | PASSOU | Testes JVM debug/release cobrem horário silencioso, seletores independentes por transporte, falhas independentes de voz/vibração e teardown do controlador. |
+| Interface Compose | PASSOU | `SettingsScreenTest` 14/14 em `Codex_API_35`, Android 15/API 35; valida controles, horários, erros e teste manual sem afirmar percepção física de vibração no emulador. |
+| Manifesto | PASSOU | Script de política e inspeção `aapt2` do APK confirmaram `android.permission.VIBRATE` presente; `android.permission.INTERNET` e `android.permission.ACCESS_NOTIFICATION_POLICY` ausentes. |
+
+## Evidência tátil
+
+| Cenário | Resultado | Evidência e observações |
+| --- | --- | --- |
+| Percepção dos padrões hápticos em aparelho físico | NÃO EXECUTADO — OPCIONAL | Não é gate da distribuição. A suíte instrumentada Android 35 continua obrigatória, mas não comprova percepção física de vibração. |
 
 ## Resultados no Moto G54 5G
 
@@ -51,6 +70,7 @@ O CI executa:
 .\scripts\tests\verify-release-apk-test.ps1
 .\scripts\tests\release-workflow-test.ps1
 .\scripts\tests\privacy-manifest-test.ps1
+.\scripts\tests\cross-platform-script-test.ps1
 .\gradlew.bat connectedDebugAndroidTest
 ```
 
@@ -58,7 +78,7 @@ Os testes instrumentados são obrigatórios em emulador Android 35 no GitHub Act
 
 O verificador constrói um APK release com chave temporária e cobre: metadados válidos, divergência de versão, sintaxe da tag, faixa de componentes, certificado incorreto e rejeição de APK depurável. Na publicação, ele compara o certificado do APK com `signing/release-certificate.sha256`.
 
-A cobertura funcional inclui máquina de estados/debounce, observação por transporte, política e sonda celular ativa, timeout, execução única, coalescimento, cancelamento durante registro, compatibilidade API 26–30/API 31+, receiver de modo avião, preferências, mensagens em português, fila TTS, coordenação do monitoramento, notificação, ViewModel, telas Compose e decisão de restart.
+A cobertura funcional inclui máquina de estados/debounce, observação por transporte, política e sonda celular ativa, timeout, execução única, coalescimento, cancelamento durante registro, compatibilidade API 26–30/API 31+, receiver de modo avião, preferências, mensagens em português, fila TTS, política de alertas e horário silencioso, controlador háptico, coordenação do monitoramento, notificação, ViewModel, telas Compose e decisão de restart.
 
 ## Estado final do aparelho de referência
 

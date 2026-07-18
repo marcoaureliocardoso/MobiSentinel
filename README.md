@@ -1,6 +1,6 @@
 # MobiSentinel
 
-MobiSentinel é um aplicativo Android nativo que diagnostica separadamente a conectividade por Wi‑Fi e por dados móveis. Mudanças persistentes são confirmadas após um intervalo configurável, exibidas na interface e na notificação do serviço e, quando habilitado, narradas em português pelo Text-to-Speech do Android.
+MobiSentinel é um aplicativo Android nativo que diagnostica separadamente a conectividade por Wi‑Fi e por dados móveis. Mudanças persistentes são confirmadas após um intervalo configurável, exibidas na interface e na notificação do serviço e, quando habilitado, narradas em português pelo Text-to-Speech do Android e, opcionalmente, sinalizadas por vibração. Um horário silencioso local pode descartar voz e vibração automáticas sem interromper o diagnóstico.
 
 O aplicativo funciona inteiramente no aparelho. Não possui conta, backend, analytics, anúncios ou histórico e não envia pings, requisições ou outros pacotes próprios para servidores externos. Consulte a [política de privacidade](PRIVACY.md) e a [política de segurança](SECURITY.md).
 
@@ -33,7 +33,7 @@ O identificador permanente do aplicativo é `br.com.marcocardoso.mobisentinel`. 
 
 1. Abra o aplicativo e toque em **Ativar monitoramento**.
 2. No Android 13 ou superior, conceda a permissão de notificações. Ela permite mostrar o estado e o controle **Parar**; o monitoramento pode continuar mesmo se a permissão for negada.
-3. Abra **Configurações** para ligar ou desligar a narração de cada transporte e ajustar os intervalos de confirmação de perda e recuperação.
+3. Abra **Configurações** para selecionar, de forma independente, voz e vibração para Wi‑Fi e dados móveis, ajustar os intervalos de confirmação de perda e recuperação e configurar o horário silencioso global. Os seletores hápticos e o horário silencioso começam desligados; a faixa inicial é `22:00–07:00`.
 4. Para encerrar o monitoramento e impedir que ele volte após reiniciar o aparelho, use **Parar** na notificação persistente. Ele pode ser reativado pela tela principal.
 
 ## Como o diagnóstico funciona
@@ -48,6 +48,19 @@ O identificador permanente do aplicativo é `br.com.marcocardoso.mobisentinel`. 
 
 Não há sonda para `8.8.8.8`, `1.1.1.1` ou qualquer outro host. Uma sonda externa poderá ser avaliada no futuro, mas não faz parte do comportamento ou das permissões atuais.
 
+## Alertas e horário silencioso
+
+A narração e a vibração são decididas separadamente para Wi‑Fi e dados móveis. A vibração automática ocorre somente quando uma transição confirmada cruza entre `CONNECTED` e um estado sem internet; `CONNECTED_NO_INTERNET` conta como sem internet. Mudanças entre estados que já estão no mesmo lado dessa fronteira não vibram.
+
+- perda: duas vibrações de `120 ms`, separadas por uma pausa de `120 ms`;
+- recuperação: uma vibração de `350 ms`.
+
+O teste manual de vibração executa os dois padrões, perda e recuperação, mesmo que os seletores por transporte estejam desligados ou o horário silencioso esteja ativo. Ele serve para verificar a integração com o aparelho; a intensidade percebida depende do hardware e do Android.
+
+No horário silencioso, o início é inclusivo e o fim é exclusivo. A faixa pode cruzar a meia-noite — por exemplo, `22:00–07:00` cobre `22:00`, mas não `07:00`. Voz e vibração automáticas ocorridas nessa faixa são descartadas, não adiadas. Monitoramento, interface e notificação continuam funcionando normalmente.
+
+Fora da faixa silenciosa interna, o aplicativo tenta vibrar quando o padrão está habilitado. O modo **Não perturbe** do Android e regras do fabricante ainda podem bloquear o efeito: o MobiSentinel não solicita acesso à política DND, não tenta contorná-la e não promete bypass.
+
 ## Permissões
 
 | Permissão | Motivo |
@@ -58,8 +71,9 @@ Não há sonda para `8.8.8.8`, `1.1.1.1` ou qualquer outro host. Uma sonda exter
 | `FOREGROUND_SERVICE` | Manter o monitoramento contínuo em um serviço visível ao usuário. |
 | `FOREGROUND_SERVICE_SPECIAL_USE` | Declarar o caso de uso contínuo de alertas de conectividade no Android atual. |
 | `RECEIVE_BOOT_COMPLETED` | Retomar o serviço depois do boot somente se o usuário o havia ativado. |
+| `VIBRATE` | Executar os padrões configurados e o teste manual; é uma permissão normal, sem diálogo de runtime. |
 
-O aplicativo não declara `INTERNET` e não solicita localização, microfone, telefone, SMS, contatos ou armazenamento.
+O aplicativo não declara `INTERNET` e não solicita `ACCESS_NOTIFICATION_POLICY`, localização, microfone, telefone, SMS, contatos ou armazenamento. Não envia sondas externas nem coleta dados.
 
 ## Desenvolvimento
 
@@ -80,12 +94,15 @@ Comandos principais:
 .\gradlew.bat testDebugUnitTest testReleaseUnitTest
 .\gradlew.bat lintDebug lintRelease assembleDebug
 .\gradlew.bat connectedDebugAndroidTest
+.\scripts\tests\privacy-manifest-test.ps1
 .\scripts\tests\create-production-signing-test.ps1
 .\scripts\tests\configure-production-environment-test.ps1
 .\scripts\tests\verify-release-apk-test.ps1
 .\scripts\tests\release-workflow-test.ps1
-.\scripts\tests\privacy-manifest-test.ps1
+.\scripts\tests\cross-platform-script-test.ps1
 ```
+
+Os testes JVM cobrem a política de alertas, horário silencioso, controlador háptico e integração com o engine. O gate de manifesto confirma `VIBRATE` e a ausência de `INTERNET` e `ACCESS_NOTIFICATION_POLICY`; o gate instrumentado obrigatório roda a interface e o DataStore em emulador Android 35. A percepção tátil em aparelho físico é uma validação opcional e não substitui esses gates.
 
 Para abrir um build debug em um alvo ADB:
 
@@ -126,4 +143,4 @@ Quatro cenários permanecem como riscos conhecidos e aceitos nesta etapa:
 
 Esses cenários podem ser revalidados depois da release e não impedem a publicação atual. A voz e o idioma continuam dependendo do mecanismo Text-to-Speech instalado, e fabricantes podem impor restrições adicionais de bateria e inicialização automática.
 
-Documentação de projeto: [design do MVP](docs/superpowers/specs/2026-07-16-mobisentinel-design.md), [validação celular ativa](docs/superpowers/specs/2026-07-16-cellular-active-validation-design.md), [design da release assinada](docs/superpowers/specs/2026-07-17-production-github-release-design.md) e [runbook de produção](docs/releasing/production-release.md).
+Documentação de projeto: [design do MVP](docs/superpowers/specs/2026-07-16-mobisentinel-design.md), [validação celular ativa](docs/superpowers/specs/2026-07-16-cellular-active-validation-design.md), [design da release assinada](docs/superpowers/specs/2026-07-17-production-github-release-design.md), [design de alertas hápticos e horário silencioso](docs/superpowers/specs/2026-07-18-haptic-alerts-quiet-hours-design.md), [plano de implementação da feature](docs/superpowers/plans/2026-07-18-haptic-alerts-quiet-hours.md) e [runbook de produção](docs/releasing/production-release.md).

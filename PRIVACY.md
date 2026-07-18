@@ -1,6 +1,6 @@
 # Política de privacidade
 
-Última atualização: 17 de julho de 2026.
+Última atualização: 18 de julho de 2026.
 
 MobiSentinel diagnostica conectividade no próprio aparelho. O desenvolvedor não coleta, recebe, armazena, vende ou compartilha dados do usuário por meio do aplicativo.
 
@@ -27,9 +27,13 @@ Preferences DataStore mantém somente:
 
 - monitoramento ativado ou desativado;
 - narração ativada ou desativada por transporte;
+- vibração ativada ou desativada por transporte;
+- horário silencioso ativado ou desativado e seus minutos de início e fim;
 - intervalos configurados de confirmação de perda e recuperação.
 
 Essas preferências permanecem no armazenamento privado do aplicativo e são removidas quando os dados do app são apagados ou ele é desinstalado.
+
+A avaliação do horário e do fuso local e a solicitação de vibração ao Android ocorrem inteiramente no aparelho. Esses recursos não geram histórico, telemetria ou transmissão de dados. O aplicativo não lê nem controla a política **Não perturbe** do sistema.
 
 ## Narração
 
