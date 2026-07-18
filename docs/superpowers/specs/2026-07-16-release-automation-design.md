@@ -1,5 +1,7 @@
 # MobiSentinel — Especificação de versionamento e automação de releases
 
+> Documento histórico: a política de APK exclusivamente debug descrita abaixo foi substituída em 17 de julho de 2026 pelo [design de release de produção assinada](2026-07-17-production-github-release-design.md). Nomes de pacote, gates e comandos antigos são preservados apenas como evidência da decisão original.
+
 Data: 16 de julho de 2026
 Status: aprovado para planejamento
 

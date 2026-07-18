@@ -1,5 +1,7 @@
 # Release Automation Implementation Plan
 
+> Documento histórico: o fluxo debug-only descrito abaixo foi substituído em 17 de julho de 2026 pelo [plano de release de produção assinada](2026-07-17-production-github-release.md). Nomes de pacote, gates e comandos antigos são preservados apenas como evidência da implementação anterior.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Automatizar versionamento SemVer, changelog, CI e publicação de um APK debug verificável em GitHub Releases, começando explicitamente em 0.1.0.
