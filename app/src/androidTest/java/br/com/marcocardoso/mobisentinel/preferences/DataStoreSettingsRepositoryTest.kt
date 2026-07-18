@@ -142,6 +142,19 @@ class DataStoreSettingsRepositoryTest {
         assertEquals(MonitoringSettings.DEFAULT_QUIET_END_MINUTE, settings.quietEndMinuteOfDay)
     }
 
+    @Test
+    fun manuallyStoredOutOfRangeQuietStartNormalizesTheCompletePair() = runTest {
+        val fixture = Fixture(backgroundScope)
+        fixture.dataStore.edit { preferences ->
+            preferences[quietStartMinuteOfDayKey] = -1
+            preferences[quietEndMinuteOfDayKey] = 7 * 60
+        }
+
+        val settings = fixture.repository.settings.first()
+        assertEquals(MonitoringSettings.DEFAULT_QUIET_START_MINUTE, settings.quietStartMinuteOfDay)
+        assertEquals(MonitoringSettings.DEFAULT_QUIET_END_MINUTE, settings.quietEndMinuteOfDay)
+    }
+
     private class Fixture(scope: CoroutineScope) {
         val dataStore: DataStore<Preferences>
         val repository: DataStoreSettingsRepository
