@@ -8,4 +8,5 @@ data class MainUiState(
     val snapshot: MonitoringSnapshot = MonitoringSnapshot(),
     val settings: MonitoringSettings = MonitoringSettings(),
     val speechAvailability: SpeechAvailability = SpeechAvailability.INITIALIZING,
+    val hapticAvailable: Boolean = false,
 )

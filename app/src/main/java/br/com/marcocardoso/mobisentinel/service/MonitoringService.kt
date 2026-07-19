@@ -40,6 +40,7 @@ class MonitoringService : Service() {
         when (intent?.action) {
             ACTION_STOP -> stopFromUser()
             ACTION_TEST_VOICE -> engine.testVoice()
+            ACTION_TEST_HAPTICS -> engine.testHaptics()
         }
         return START_STICKY
     }
@@ -73,6 +74,7 @@ class MonitoringService : Service() {
     companion object {
         const val ACTION_STOP = "br.com.marcocardoso.mobisentinel.action.STOP"
         const val ACTION_TEST_VOICE = "br.com.marcocardoso.mobisentinel.action.TEST_VOICE"
+        const val ACTION_TEST_HAPTICS = "br.com.marcocardoso.mobisentinel.action.TEST_HAPTICS"
 
         fun start(context: Context) {
             ContextCompat.startForegroundService(context, Intent(context, MonitoringService::class.java))
@@ -89,6 +91,13 @@ class MonitoringService : Service() {
             ContextCompat.startForegroundService(
                 context,
                 Intent(context, MonitoringService::class.java).setAction(ACTION_TEST_VOICE),
+            )
+        }
+
+        fun testHaptics(context: Context) {
+            ContextCompat.startForegroundService(
+                context,
+                Intent(context, MonitoringService::class.java).setAction(ACTION_TEST_HAPTICS),
             )
         }
     }

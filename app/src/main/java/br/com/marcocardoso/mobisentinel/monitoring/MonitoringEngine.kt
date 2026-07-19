@@ -1,5 +1,9 @@
 package br.com.marcocardoso.mobisentinel.monitoring
 
+import br.com.marcocardoso.mobisentinel.haptics.HapticController
+import br.com.marcocardoso.mobisentinel.monitoring.alerts.AlertPolicy
+import br.com.marcocardoso.mobisentinel.monitoring.alerts.LocalMinuteProvider
+import br.com.marcocardoso.mobisentinel.monitoring.alerts.SystemLocalMinuteProvider
 import br.com.marcocardoso.mobisentinel.monitoring.model.MonitoringSettings
 import br.com.marcocardoso.mobisentinel.monitoring.model.Transport
 import br.com.marcocardoso.mobisentinel.monitoring.network.NetworkObserver
@@ -7,6 +11,7 @@ import br.com.marcocardoso.mobisentinel.monitoring.state.TransitionCoordinator
 import br.com.marcocardoso.mobisentinel.preferences.SettingsRepository
 import br.com.marcocardoso.mobisentinel.speech.PortugueseMessageFactory
 import br.com.marcocardoso.mobisentinel.speech.SpeechController
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
@@ -20,7 +25,10 @@ class MonitoringEngine(
     private val networkObserver: NetworkObserver,
     private val settingsRepository: SettingsRepository,
     private val speechController: SpeechController,
+    private val hapticController: HapticController,
     private val stateStore: MonitoringStateStore,
+    private val alertPolicy: AlertPolicy = AlertPolicy(),
+    private val localMinuteProvider: LocalMinuteProvider = SystemLocalMinuteProvider,
 ) {
     private val lock = Any()
 
@@ -82,9 +90,19 @@ class MonitoringEngine(
             cellularCoordinator?.close()
             wifiCoordinator = null
             cellularCoordinator = null
-            networkObserver.stop()
-            speechController.close()
-            stateStore.setServiceActive(false)
+            try {
+                bestEffort { speechController.close() }
+            } finally {
+                try {
+                    bestEffort { hapticController.close() }
+                } finally {
+                    try {
+                        networkObserver.stop()
+                    } finally {
+                        stateStore.setServiceActive(false)
+                    }
+                }
+            }
         }
     }
 
@@ -92,6 +110,14 @@ class MonitoringEngine(
         synchronized(lock) {
             if (started) {
                 speechController.testVoice()
+            }
+        }
+    }
+
+    fun testHaptics() {
+        synchronized(lock) {
+            if (started) {
+                hapticController.testPatterns()
             }
         }
     }
@@ -105,9 +131,28 @@ class MonitoringEngine(
         settings = { currentSettings },
         onConfirmedState = { stateStore.setState(transport, it) },
         onTransition = { transition ->
-            if (currentSettings.narrationEnabled(transport)) {
-                speechController.announce(PortugueseMessageFactory.from(transition))
+            val settings = currentSettings
+            val decision = alertPolicy.decide(
+                transition = transition,
+                settings = settings,
+                minuteOfDay = localMinuteProvider.currentMinuteOfDay(),
+            )
+            if (decision.narrate) {
+                bestEffort { speechController.announce(PortugueseMessageFactory.from(transition)) }
+            }
+            decision.hapticPattern?.let { pattern ->
+                bestEffort { hapticController.play(pattern) }
             }
         },
     )
+
+    private inline fun bestEffort(action: () -> Unit) {
+        try {
+            action()
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (_: RuntimeException) {
+            // Alerts and controller teardown must not block independent monitoring work.
+        }
+    }
 }

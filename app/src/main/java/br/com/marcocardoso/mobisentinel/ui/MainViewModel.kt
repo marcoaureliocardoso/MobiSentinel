@@ -17,17 +17,18 @@ class MainViewModel(
     stateStore: MonitoringStateStore,
     private val settingsRepository: SettingsRepository,
     speechAvailability: StateFlow<SpeechAvailability>,
+    hapticAvailable: Boolean,
 ) : ViewModel() {
     val uiState: StateFlow<MainUiState> = combine(
         stateStore.snapshot,
         settingsRepository.settings,
         speechAvailability,
     ) { snapshot, settings, availability ->
-        MainUiState(snapshot, settings, availability)
+        MainUiState(snapshot, settings, availability, hapticAvailable)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = MainUiState(),
+        initialValue = MainUiState(hapticAvailable = hapticAvailable),
     )
 
     fun activate() {
@@ -40,6 +41,22 @@ class MainViewModel(
 
     fun setNarrateCellular(enabled: Boolean) {
         viewModelScope.launch { settingsRepository.setNarrateCellular(enabled) }
+    }
+
+    fun setVibrateWifi(enabled: Boolean) {
+        viewModelScope.launch { settingsRepository.setVibrateWifi(enabled) }
+    }
+
+    fun setVibrateCellular(enabled: Boolean) {
+        viewModelScope.launch { settingsRepository.setVibrateCellular(enabled) }
+    }
+
+    fun setQuietHoursEnabled(enabled: Boolean) {
+        viewModelScope.launch { settingsRepository.setQuietHoursEnabled(enabled) }
+    }
+
+    fun setQuietHours(startMinuteOfDay: Int, endMinuteOfDay: Int) {
+        viewModelScope.launch { settingsRepository.setQuietHours(startMinuteOfDay, endMinuteOfDay) }
     }
 
     fun setLossDelaySeconds(seconds: Int) {
@@ -60,6 +77,7 @@ class MainViewModel(
                     application.monitoringStateStore,
                     application.settingsRepository,
                     application.speechAvailability,
+                    application.hapticAvailable,
                 ) as T
             }
             throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")

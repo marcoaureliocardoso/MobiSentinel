@@ -12,6 +12,14 @@ interface SettingsRepository {
 
     suspend fun setNarrateCellular(enabled: Boolean)
 
+    suspend fun setVibrateWifi(enabled: Boolean)
+
+    suspend fun setVibrateCellular(enabled: Boolean)
+
+    suspend fun setQuietHoursEnabled(enabled: Boolean)
+
+    suspend fun setQuietHours(startMinuteOfDay: Int, endMinuteOfDay: Int)
+
     suspend fun setLossDelaySeconds(seconds: Int)
 
     suspend fun setRecoveryDelaySeconds(seconds: Int)
