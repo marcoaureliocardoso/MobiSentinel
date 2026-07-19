@@ -236,8 +236,13 @@ class DefaultHapticControllerTest {
 
         fixture.controller.play(HapticPattern.LOSS)
         fixture.controller.testPatterns()
+        runCurrent()
+        advanceTimeBy(LOSS_DURATION_MS + TEST_GAP_MS)
+        runCurrent()
 
         assertTrue(fixture.device.playAttempts.isEmpty())
+        assertEquals(3, fixture.device.availabilityAttempts)
+        assertEquals(2, fixture.device.cancelAttempts)
         fixture.controller.close()
     }
 
@@ -334,12 +339,14 @@ class DefaultHapticControllerTest {
         var availabilityFailure: Throwable? = null
         var playFailure: Throwable? = null
         var cancelFailure: Throwable? = null
+        var availabilityAttempts = 0
         val playAttempts = mutableListOf<HapticPattern>()
         val playedPatterns = mutableListOf<HapticPattern>()
         var cancelAttempts = 0
 
         override val isAvailable: Boolean
             get() {
+                availabilityAttempts += 1
                 availabilityFailure?.let { throw it }
                 return available
             }
