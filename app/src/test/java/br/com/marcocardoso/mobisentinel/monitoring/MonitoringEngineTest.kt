@@ -1,6 +1,8 @@
 package br.com.marcocardoso.mobisentinel.monitoring
 
+import br.com.marcocardoso.mobisentinel.haptics.DefaultHapticController
 import br.com.marcocardoso.mobisentinel.haptics.HapticController
+import br.com.marcocardoso.mobisentinel.haptics.HapticDevice
 import br.com.marcocardoso.mobisentinel.monitoring.alerts.HapticPattern
 import br.com.marcocardoso.mobisentinel.monitoring.alerts.LocalMinuteProvider
 import br.com.marcocardoso.mobisentinel.monitoring.model.ConnectivityState
@@ -12,9 +14,15 @@ import br.com.marcocardoso.mobisentinel.preferences.SettingsRepository
 import br.com.marcocardoso.mobisentinel.speech.Announcement
 import br.com.marcocardoso.mobisentinel.speech.SpeechAvailability
 import br.com.marcocardoso.mobisentinel.speech.SpeechController
+import java.util.Collections
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,6 +33,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -394,6 +403,55 @@ class MonitoringEngineTest {
 
         assertEquals(1, fixture.speech.testVoiceCount)
         assertEquals(1, fixture.haptics.testPatternsCount)
+    }
+
+    @Test
+    fun manualHapticActionRunsEveryDeviceOperationOffTheCallingThread() = runTest {
+        val callerThread = Thread.currentThread()
+        val deviceThreads = Collections.synchronizedList(mutableListOf<Thread>())
+        val lossPlayed = CountDownLatch(1)
+        val device = object : HapticDevice {
+            override val isAvailable: Boolean
+                get() {
+                    deviceThreads += Thread.currentThread()
+                    return true
+                }
+
+            override fun play(pattern: HapticPattern) {
+                deviceThreads += Thread.currentThread()
+                if (pattern == HapticPattern.LOSS) lossPlayed.countDown()
+            }
+
+            override fun cancel() {
+                deviceThreads += Thread.currentThread()
+            }
+        }
+
+        Executors.newSingleThreadExecutor { runnable ->
+            Thread(runnable, "haptic-test-worker")
+        }.asCoroutineDispatcher().use { hapticDispatcher ->
+            val haptics = DefaultHapticController(
+                parentScope = CoroutineScope(SupervisorJob() + hapticDispatcher),
+                device = device,
+            )
+            val engine = MonitoringEngine(
+                parentScope = backgroundScope,
+                networkObserver = FakeNetworkObserver(),
+                settingsRepository = FakeSettingsRepository(zeroDelaySettings),
+                speechController = RecordingSpeechController(),
+                hapticController = haptics,
+                stateStore = MonitoringStateStore(),
+            )
+            engine.start()
+            runCurrent()
+
+            engine.testHaptics()
+
+            assertTrue(lossPlayed.await(2, TimeUnit.SECONDS))
+            assertTrue(deviceThreads.isNotEmpty())
+            deviceThreads.forEach { deviceThread -> assertNotSame(callerThread, deviceThread) }
+            engine.stop()
+        }
     }
 
     @Test

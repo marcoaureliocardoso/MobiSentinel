@@ -44,9 +44,8 @@ internal class DefaultHapticController(
             val sequenceGeneration = generation + 1
             generation = sequenceGeneration
             manualSequence?.cancel()
-            cancelDeviceLocked()
-            playIfAvailableLocked(HapticPattern.LOSS)
             manualSequence = controllerScope.launch {
+                startManualSequenceIfCurrent(sequenceGeneration)
                 delay(LOSS_DURATION_MS + TEST_GAP_MS)
                 recoverIfCurrent(sequenceGeneration)
             }
@@ -72,6 +71,15 @@ internal class DefaultHapticController(
 
             playIfAvailableLocked(HapticPattern.RECOVERY)
             manualSequence = null
+        }
+    }
+
+    private fun startManualSequenceIfCurrent(sequenceGeneration: Long) {
+        synchronized(lock) {
+            if (closed || sequenceGeneration != generation) return
+
+            cancelDeviceLocked()
+            playIfAvailableLocked(HapticPattern.LOSS)
         }
     }
 

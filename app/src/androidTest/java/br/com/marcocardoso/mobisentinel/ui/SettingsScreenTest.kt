@@ -1,12 +1,20 @@
 package br.com.marcocardoso.mobisentinel.ui
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -82,6 +90,20 @@ class SettingsScreenTest {
 
         assertEquals(listOf(false), wifiValues)
         assertEquals(listOf(true), cellularValues)
+    }
+
+    @Test
+    fun switchRowsExposeTheirLabelAndToggleStateAsOneAccessibleControl() {
+        render(settings = MonitoringSettings(vibrateWifi = true, vibrateCellular = false))
+
+        composeRule.onNodeWithTag("vibrate_wifi")
+            .performScrollTo()
+            .assertTextContains("Vibrar em eventos de Wi-Fi")
+            .assertIsOn()
+        composeRule.onNodeWithTag("vibrate_cellular")
+            .performScrollTo()
+            .assertTextContains("Vibrar em eventos de dados móveis")
+            .assertIsOff()
     }
 
     @Test
@@ -167,8 +189,55 @@ class SettingsScreenTest {
         composeRule.runOnIdle { launcher.select(MonitoringSettings.DEFAULT_QUIET_END_MINUTE) }
 
         composeRule.onNodeWithTag("quiet_hours_error").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag("quiet_hours_error").assert(
+            SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite),
+        )
         composeRule.onNodeWithText("Início e fim precisam ser diferentes.").assertIsDisplayed()
         assertEquals(emptyList<Pair<Int, Int>>(), ranges)
+    }
+
+    @Test
+    fun rapidTimeSelectionsKeepTheOptimisticDraftUntilTheFinalRangeIsPersisted() {
+        val launcher = FakeTimePickerLauncher()
+        val ranges = mutableListOf<Pair<Int, Int>>()
+        var persistedSettings by mutableStateOf(MonitoringSettings())
+        render(
+            settingsProvider = { persistedSettings },
+            timePickerLauncher = launcher,
+            onQuietHoursChange = { start, end -> ranges += start to end },
+        )
+        composeRule.onNodeWithTag("quiet_start").performScrollTo().performClick()
+        composeRule.onNodeWithTag("quiet_end").performScrollTo().performClick()
+
+        composeRule.runOnIdle {
+            launcher.select(requestIndex = 0, minuteOfDay = 8 * 60)
+            launcher.select(requestIndex = 1, minuteOfDay = 18 * 60)
+        }
+
+        assertEquals(
+            listOf(
+                8 * 60 to MonitoringSettings.DEFAULT_QUIET_END_MINUTE,
+                8 * 60 to 18 * 60,
+            ),
+            ranges,
+        )
+        composeRule.runOnIdle {
+            persistedSettings = persistedSettings.copy(
+                quietStartMinuteOfDay = 8 * 60,
+                quietEndMinuteOfDay = MonitoringSettings.DEFAULT_QUIET_END_MINUTE,
+            )
+        }
+        composeRule.onNodeWithText("08:00").assertIsDisplayed()
+        composeRule.onNodeWithText("18:00").assertIsDisplayed()
+
+        composeRule.runOnIdle {
+            persistedSettings = persistedSettings.copy(
+                quietStartMinuteOfDay = 8 * 60,
+                quietEndMinuteOfDay = 18 * 60,
+            )
+        }
+        composeRule.onNodeWithText("08:00").assertIsDisplayed()
+        composeRule.onNodeWithText("18:00").assertIsDisplayed()
     }
 
     @Test
@@ -284,6 +353,7 @@ class SettingsScreenTest {
 
     private fun render(
         settings: MonitoringSettings = MonitoringSettings(),
+        settingsProvider: (() -> MonitoringSettings)? = null,
         speechAvailability: SpeechAvailability = SpeechAvailability.READY,
         hapticAvailable: Boolean = true,
         onNarrateWifiChange: (Boolean) -> Unit = {},
@@ -302,7 +372,7 @@ class SettingsScreenTest {
     ) {
         composeRule.setContent {
             SettingsScreen(
-                settings = settings,
+                settings = settingsProvider?.invoke() ?: settings,
                 speechAvailability = speechAvailability,
                 hapticAvailable = hapticAvailable,
                 onNarrateWifiChange = onNarrateWifiChange,
@@ -326,15 +396,19 @@ class SettingsScreenTest {
     private class FakeTimePickerLauncher : TimePickerLauncher {
         var initialMinuteOfDay: Int? = null
             private set
-        private var onSelected: ((Int) -> Unit)? = null
+        private val selections = mutableListOf<(Int) -> Unit>()
 
         override fun show(initialMinuteOfDay: Int, onSelected: (Int) -> Unit) {
             this.initialMinuteOfDay = initialMinuteOfDay
-            this.onSelected = onSelected
+            selections += onSelected
         }
 
         fun select(minuteOfDay: Int) {
-            checkNotNull(onSelected)(minuteOfDay)
+            selections.last()(minuteOfDay)
+        }
+
+        fun select(requestIndex: Int, minuteOfDay: Int) {
+            selections[requestIndex](minuteOfDay)
         }
     }
 }

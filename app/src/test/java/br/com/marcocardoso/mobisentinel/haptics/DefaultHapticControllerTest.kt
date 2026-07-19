@@ -35,13 +35,16 @@ class DefaultHapticControllerTest {
     }
 
     @Test
-    fun manualTestPlaysLossImmediatelyAndRecoveryAfterTheFullGap() = runTest {
+    fun manualTestSchedulesTheEntireSequenceAndRecoversAfterTheFullGap() = runTest {
         val fixture = Fixture(this)
 
         fixture.controller.testPatterns()
 
-        assertEquals(listOf(HapticPattern.LOSS), fixture.device.playedPatterns)
+        assertTrue(fixture.device.playedPatterns.isEmpty())
+        assertEquals(0, fixture.device.cancelAttempts)
         runCurrent()
+        assertEquals(listOf(HapticPattern.LOSS), fixture.device.playedPatterns)
+        assertEquals(1, fixture.device.cancelAttempts)
         advanceTimeBy(LOSS_DURATION_MS + TEST_GAP_MS - 1)
         runCurrent()
         assertEquals(listOf(HapticPattern.LOSS), fixture.device.playedPatterns)
@@ -104,6 +107,8 @@ class DefaultHapticControllerTest {
         val firstLossEntered = CountDownLatch(1)
         val secondLossEntered = CountDownLatch(1)
         val releaseFirstLoss = CountDownLatch(1)
+        val secondStarted = CountDownLatch(1)
+        val secondReturned = CountDownLatch(1)
         val lossCount = AtomicInteger()
         val workerFailure = AtomicReference<Throwable?>()
         val device = FakeHapticDevice(
@@ -119,13 +124,19 @@ class DefaultHapticControllerTest {
         )
         val controller = DefaultHapticController(this, device)
 
-        val first = startWorker("first-manual-test", workerFailure) { controller.testPatterns() }
+        controller.testPatterns()
+        val first = startWorker("first-manual-sequence", workerFailure) { testScheduler.runCurrent() }
         assertTrue(firstLossEntered.await(2, TimeUnit.SECONDS))
-        val second = startWorker("second-manual-test", workerFailure) { controller.testPatterns() }
+        val second = startWorker("second-manual-test", workerFailure) {
+            secondStarted.countDown()
+            controller.testPatterns()
+            secondReturned.countDown()
+        }
 
+        assertTrue(secondStarted.await(2, TimeUnit.SECONDS))
+        assertFalse(secondReturned.await(150, TimeUnit.MILLISECONDS))
         assertFalse(secondLossEntered.await(150, TimeUnit.MILLISECONDS))
         releaseFirstLoss.countDown()
-        assertTrue(secondLossEntered.await(2, TimeUnit.SECONDS))
         first.join(2_000)
         second.join(2_000)
         assertFalse(first.isAlive)
@@ -133,6 +144,7 @@ class DefaultHapticControllerTest {
         throwWorkerFailure(workerFailure)
 
         runCurrent()
+        assertTrue(secondLossEntered.await(2, TimeUnit.SECONDS))
         advanceTimeBy(LOSS_DURATION_MS + TEST_GAP_MS)
         runCurrent()
 
@@ -160,7 +172,8 @@ class DefaultHapticControllerTest {
         )
         val controller = DefaultHapticController(this, device)
 
-        val manualTest = startWorker("manual-test", workerFailure) { controller.testPatterns() }
+        controller.testPatterns()
+        val manualSequence = startWorker("manual-sequence", workerFailure) { testScheduler.runCurrent() }
         assertTrue(playEntered.await(2, TimeUnit.SECONDS))
         val close = startWorker("close", workerFailure) {
             controller.close()
@@ -169,9 +182,9 @@ class DefaultHapticControllerTest {
 
         assertFalse(closeReturned.await(150, TimeUnit.MILLISECONDS))
         releasePlay.countDown()
-        manualTest.join(2_000)
+        manualSequence.join(2_000)
         close.join(2_000)
-        assertFalse(manualTest.isAlive)
+        assertFalse(manualSequence.isAlive)
         assertFalse(close.isAlive)
         throwWorkerFailure(workerFailure)
 
