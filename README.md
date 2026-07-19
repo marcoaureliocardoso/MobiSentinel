@@ -55,7 +55,7 @@ A narração e a vibração são decididas separadamente para Wi‑Fi e dados m�
 - perda: duas vibrações de `120 ms`, separadas por uma pausa de `120 ms`;
 - recuperação: uma vibração de `350 ms`.
 
-O teste manual de vibração executa os dois padrões, perda e recuperação, mesmo que os seletores por transporte estejam desligados ou o horário silencioso esteja ativo. Ele serve para verificar a integração com o aparelho; a intensidade percebida depende do hardware e do Android.
+O teste manual de vibração só fica habilitado quando o monitoramento está ativo e há vibrador disponível. Quando habilitado, executa os dois padrões, perda e recuperação, mesmo que os seletores por transporte estejam desligados ou o horário silencioso esteja ativo. Ele serve para verificar a integração com o aparelho; a intensidade percebida depende do hardware e do Android.
 
 No horário silencioso, o início é inclusivo e o fim é exclusivo. A faixa pode cruzar a meia-noite — por exemplo, `22:00–07:00` cobre `22:00`, mas não `07:00`. Voz e vibração automáticas ocorridas nessa faixa são descartadas, não adiadas. Monitoramento, interface e notificação continuam funcionando normalmente.
 

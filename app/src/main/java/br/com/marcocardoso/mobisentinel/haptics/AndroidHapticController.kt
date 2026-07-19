@@ -4,6 +4,7 @@ import android.content.Context
 import android.media.AudioAttributes
 import android.os.Build
 import android.os.VibrationEffect
+import android.os.VibrationAttributes
 import android.os.Vibrator
 import android.os.VibratorManager
 import br.com.marcocardoso.mobisentinel.monitoring.alerts.HapticPattern
@@ -38,7 +39,7 @@ class AndroidHapticController(
 
 private class AndroidHapticDevice(context: Context) : HapticDevice {
     private val vibrator = vibratorFor(context)
-    private val attributes = AudioAttributes.Builder()
+    private val legacyAttributes = AudioAttributes.Builder()
         .setUsage(AudioAttributes.USAGE_NOTIFICATION_EVENT)
         .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
         .build()
@@ -51,11 +52,22 @@ private class AndroidHapticDevice(context: Context) : HapticDevice {
             HapticPattern.LOSS -> VibrationEffect.createWaveform(longArrayOf(0, 120, 120, 120), -1)
             HapticPattern.RECOVERY -> VibrationEffect.createOneShot(350, VibrationEffect.DEFAULT_AMPLITUDE)
         }
-        vibrator?.vibrate(effect, attributes)
+        vibrate(effect)
     }
 
     override fun cancel() {
         vibrator?.cancel()
+    }
+
+    private fun vibrate(effect: VibrationEffect) {
+        val vibrator = vibrator ?: return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val vibrationAttributes = VibrationAttributes.createForUsage(VibrationAttributes.USAGE_NOTIFICATION)
+            vibrator.vibrate(effect, vibrationAttributes)
+        } else {
+            @Suppress("DEPRECATION")
+            vibrator.vibrate(effect, legacyAttributes)
+        }
     }
 
     private fun vibratorFor(context: Context): Vibrator? = bestEffort {
